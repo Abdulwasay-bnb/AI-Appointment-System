@@ -1,0 +1,91 @@
+/* Custom Admin Styles for Unfold - Match App Look */
+
+/* Sidebar */
+#nav-sidebar, #nav-sidebar-inner {
+    background: #f9fafb !important; /* gray-50 */
+    border-right: 1px solid #e5e7eb !important; /* gray-200 */
+}
+
+/* Sidebar links */
+#nav-sidebar-inner a {
+    color: #2563eb !important; /* blue-600 */
+    border-radius: 8px;
+    font-weight: 500;
+    transition: background 0.2s, color 0.2s;
+}
+#nav-sidebar-inner a:hover, #nav-sidebar-inner a:focus {
+    background: #e0e7ff !important; /* blue-100 */
+    color: #1d4ed8 !important; /* blue-700 */
+}
+
+/* Active link */
+#nav-sidebar-inner a.active, #nav-sidebar-inner a[aria-current="page"] {
+    background: linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%) !important;
+    color: #fff !important;
+}
+
+/* Card/Module containers */
+.module, .card, .app-auth, .app-tts, .app-user_auth {
+    background: #fff !important;
+    border: 1px solid #e5e7eb !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 6px -1px rgba(59,130,246,0.07);
+    margin-bottom: 1.5rem;
+}
+
+/* Headings */
+h1, h2, h3, .module h2, .module h3 {
+    color: #1e293b !important; /* gray-800 */
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+}
+
+/* Buttons */
+button, .button, input[type="submit"], input[type="button"] {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important;
+    color: #fff !important;
+    border-radius: 8px !important;
+    border: none !important;
+    font-weight: 600;
+    transition: background 0.2s, box-shadow 0.2s;
+    box-shadow: 0 2px 8px 0 rgba(59,130,246,0.08);
+}
+button:hover, .button:hover, input[type="submit"]:hover, input[type="button"]:hover {
+    background: linear-gradient(135deg, #2563eb, #1e40af) !important;
+}
+
+/* Table headers */
+th {
+    background: #f1f5f9 !important; /* gray-100 */
+    color: #1e293b !important;
+    font-weight: 600;
+}
+
+/* Table rows */
+td {
+    background: #fff !important;
+    color: #334155 !important; /* gray-700 */
+}
+
+/* Form fields */
+input, select, textarea {
+    border: 1px solid #d1d5db !important; /* gray-300 */
+    border-radius: 8px !important;
+    background: #fff !important;
+    color: #1e293b !important;
+    font-family: 'Inter', sans-serif;
+}
+input:focus, select:focus, textarea:focus {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 2px #3b82f6 !important;
+    outline: none !important;
+}
+
+/* Misc */
+::-webkit-scrollbar-thumb {
+    background: #c7d2fe !important; /* blue-200 */
+    border-radius: 8px;
+}
+::-webkit-scrollbar-track {
+    background: #f9fafb !important;
+} 
