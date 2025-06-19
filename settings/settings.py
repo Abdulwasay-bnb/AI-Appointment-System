@@ -12,6 +12,9 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+from django.templatetags.static import static
+from django.urls import reverse_lazy
+from django.utils.translation import gettext_lazy as _
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -32,6 +35,7 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -49,6 +53,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'user_auth',
+    'tts',
+    'llm',
 ]
 
 MIDDLEWARE = [
@@ -66,7 +72,7 @@ ROOT_URLCONF = 'settings.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': ['templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -126,13 +132,187 @@ USE_I18N = True
 
 USE_TZ = True
 
+# Media files (User-uploaded content)
+
+MEDIA_URL = '/media/'
+
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static'),
+]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# unfold settings
+UNFOLD = {
+    "SITE_TITLE": "Custom suffix in <title> tag",
+    "SITE_HEADER": "Appears in sidebar at the top",
+    "SITE_SUBHEADER": "Appears under SITE_HEADER",
+    "SITE_DROPDOWN": [
+        {
+            "icon": "diamond",
+            "title": _("My site"),
+            "link": "https://example.com",
+        },
+        # ...
+    ],
+    "SITE_URL": "/",
+    # "SITE_ICON": lambda request: static("icon.svg"),  # both modes, optimise for 32px height
+    "SITE_ICON": {
+        "light": lambda request: static("icon-light.svg"),  # light mode
+        "dark": lambda request: static("icon-dark.svg"),  # dark mode
+    },
+    # "SITE_LOGO": lambda request: static("logo.svg"),  # both modes, optimise for 32px height
+    "SITE_LOGO": {
+        "light": lambda request: static("logo-light.svg"),  # light mode
+        "dark": lambda request: static("logo-dark.svg"),  # dark mode
+    },
+    "SITE_SYMBOL": "speed",  # symbol from icon set
+    "SITE_FAVICONS": [
+        {
+            "rel": "icon",
+            "sizes": "32x32",
+            "type": "image/svg+xml",
+            "href": lambda request: static("favicon.svg"),
+        },
+    ],
+    "SHOW_HISTORY": True, # show/hide "History" button, default: True
+    "SHOW_VIEW_ON_SITE": True, # show/hide "View on site" button, default: True
+    "SHOW_BACK_BUTTON": False, # show/hide "Back" button on changeform in header, default: False
+    # "ENVIRONMENT": "sample_app.environment_callback", # environment name in header
+    # "ENVIRONMENT_TITLE_PREFIX": "sample_app.environment_title_prefix_callback", # environment name prefix in title tag
+    # "DASHBOARD_CALLBACK": "sample_app.dashboard_callback",
+    "THEME": "light", # Force theme: "dark" or "light". Will disable theme switcher
+    "LOGIN": {
+        "image": lambda request: static("sample/login-bg.jpg"),
+        "redirect_after": lambda request: reverse_lazy("admin:APP_MODEL_changelist"),
+    },
+    "STYLES": [
+       # Custom admin stylesheet for app-matching styles
+    ],
+    "SCRIPTS": [
+        lambda request: static("js/script.js"),
+    ],
+    "BORDER_RADIUS": "6px",
+    "COLORS": {
+        "base": {
+            "50": "249, 250, 251",   # Tailwind gray-50
+            "100": "243, 244, 246", # Tailwind gray-100
+            "200": "229, 231, 235", # Tailwind gray-200
+            "300": "209, 213, 219", # Tailwind gray-300
+            "400": "156, 163, 175", # Tailwind gray-400
+            "500": "107, 114, 128", # Tailwind gray-500
+            "600": "75, 85, 99",    # Tailwind gray-600
+            "700": "55, 65, 81",    # Tailwind gray-700
+            "800": "31, 41, 55",    # Tailwind gray-800
+            "900": "17, 24, 39",    # Tailwind gray-900
+            "950": "3, 7, 18",      # Tailwind gray-950
+        },
+        "primary": {
+            "50": "239, 246, 255",   # Tailwind blue-50
+            "100": "219, 234, 254", # Tailwind blue-100
+            "200": "191, 219, 254", # Tailwind blue-200
+            "300": "147, 197, 253", # Tailwind blue-300
+            "400": "96, 165, 250",  # Tailwind blue-400
+            "500": "59, 130, 246",  # Tailwind blue-500
+            "600": "37, 99, 235",   # Tailwind blue-600
+            "700": "29, 78, 216",   # Tailwind blue-700
+            "800": "30, 64, 175",   # Tailwind blue-800
+            "900": "30, 58, 138",   # Tailwind blue-900
+            "950": "23, 37, 84",    # Tailwind blue-950
+        },
+        "font": {
+            "subtle-light": "var(--color-base-500)",  # text-base-500
+            "subtle-dark": "var(--color-base-400)",  # text-base-400
+            "default-light": "var(--color-base-700)",  # text-base-700
+            "default-dark": "var(--color-base-200)",  # text-base-200
+            "important-light": "var(--color-base-900)",  # text-base-900
+            "important-dark": "var(--color-base-100)",  # text-base-100
+        },
+    },
+    "EXTENSIONS": {
+        "modeltranslation": {
+            "flags": {
+                "en": "🇬🇧",
+                "fr": "🇫🇷",
+                "nl": "🇧🇪",
+            },
+        },
+    },
+    # "SIDEBAR": {
+    #     "show_search": False,  # Search in applications and models names
+    #     "show_all_applications": False,  # Dropdown with all applications and models
+    #     "navigation": [
+    #         {
+    #             "title": _("Navigation"),
+    #             "separator": True,  # Top border
+    #             "collapsible": True,  # Collapsible group of links
+    #             "items": [
+    #                 {
+    #                     "title": _("Dashboard"),
+    #                     "icon": "dashboard",  # Supported icon set: https://fonts.google.com/icons
+    #                     "link": reverse_lazy("admin:index"),
+    #                     "badge": "sample_app.badge_callback",
+    #                     "permission": lambda request: request.user.is_superuser,
+    #                 },
+    #                 {
+    #                     "title": _("Users"),
+    #                     "icon": "people",
+    #                     "link": reverse_lazy("admin:auth_user_changelist"),
+    #                 },
+    #             ],
+    #         },
+    #     ],
+    # },
+    # "TABS": [
+    #     {
+    #         "models": [
+    #             "app_label.model_name_in_lowercase",
+    #         ],
+    #         "items": [
+    #             {
+    #                 "title": _("Your custom title"),
+    #                 "link": reverse_lazy("admin:app_label_model_name_changelist"),
+    #                 "permission": "sample_app.permission_callback",
+    #             },
+    #         ],
+    #     },
+    # ],
+}
+
+
+# def dashboard_callback(request, context):
+#     """
+#     Callback to prepare custom variables for index template which is used as dashboard
+#     template. It can be overridden in application by creating custom admin/index.html.
+#     """
+#     context.update(
+#         {
+#             "sample": "example",  # this will be injected into templates/admin/index.html
+#         }
+#     )
+#     return context
+
+
+# def environment_callback(request):
+#     """
+#     Callback has to return a list of two values represeting text value and the color
+#     type of the label displayed in top right corner.
+#     """
+#     return ["Production", "danger"] # info, danger, warning, success
+
+
+# def badge_callback(request):
+#     return 3
+
+# def permission_callback(request):
+#     return request.user.has_perm("sample_app.change_model")

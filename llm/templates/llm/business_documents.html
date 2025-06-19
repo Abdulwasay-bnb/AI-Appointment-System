@@ -1,0 +1,245 @@
+{% extends 'shared/skeleton.html' %}
+{% block content %}
+
+<div class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <div class="bg-white py-16 border-b">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+                📁 Business Documents
+            </h1>
+            <p class="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+                View and manage your uploaded business documents
+            </p>
+            <a href="{% url 'business_upload' %}" class="btn-primary px-8 py-3 rounded-lg font-semibold">
+                📤 Upload New Document
+            </a>
+        </div>
+    </div>
+
+    <!-- Documents List -->
+    <div class="py-16">
+        <div class="max-w-6xl mx-auto px-4">
+            {% if documents %}
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {% for doc in documents %}
+                    <div class="card p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                                    <span class="text-blue-600 text-lg">
+                                        {% if doc.document_type == 'faq' %}📋
+                                        {% elif doc.document_type == 'about' %}🏢
+                                        {% elif doc.document_type == 'services' %}🛠️
+                                        {% elif doc.document_type == 'pricing' %}💰
+                                        {% elif doc.document_type == 'policies' %}📜
+                                        {% elif doc.document_type == 'training' %}📚
+                                        {% elif doc.document_type == 'scripts' %}📞
+                                        {% else %}📄
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                <div>
+                                    <h3 class="font-semibold text-gray-900">{{ doc.get_document_type_display }}</h3>
+                                    <p class="text-sm text-gray-500">{{ doc.created_at|date:"M d, Y" }}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                {% if doc.is_processed %}
+                                    <span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">Processed</span>
+                                {% else %}
+                                    <span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">Pending</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <p class="text-sm text-gray-600 mb-2">File: {{ doc.document.name|slice:"15:" }}</p>
+                            {% if doc.extracted_content %}
+                                <div class="bg-gray-50 p-3 rounded-lg">
+                                    <h4 class="font-medium text-gray-900 mb-2">Extracted Content:</h4>
+                                    <p class="text-sm text-gray-700 line-clamp-3">{{ doc.extracted_content|truncatewords:30 }}</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="flex space-x-2">
+                            <button class="btn-secondary text-sm px-3 py-1" onclick="viewDocument({{ doc.id }})">
+                                👁️ View
+                            </button>
+                            <button class="btn-secondary text-sm px-3 py-1" onclick="downloadDocument('{{ doc.document.url }}')">
+                                📥 Download
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-16">
+                    <div class="text-6xl mb-4">📁</div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">No Documents Uploaded</h3>
+                    <p class="text-gray-600 mb-6">Start by uploading your first business document</p>
+                    <a href="{% url 'business_upload' %}" class="btn-primary px-6 py-3 rounded-lg font-semibold">
+                        📤 Upload Document
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Document Modal -->
+<div id="document-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg max-w-4xl w-full max-h-screen overflow-y-auto">
+            <div class="p-6 border-b">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xl font-bold text-gray-900" id="modal-title">Document Details</h2>
+                    <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6">
+                <div id="modal-content">
+                    <!-- Content will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Pass structured data from Django to JS
+const structuredData = {{ structured_data|safe }};
+
+function viewDocument(docId) {
+    const modal = document.getElementById('document-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const modalContent = document.getElementById('modal-content');
+    const docData = structuredData[docId];
+    let html = '';
+    if (!docData) {
+        html = '<p class="text-gray-600">No structured data found for this document.</p>';
+    } else {
+        // FAQ
+        if (docData.faq_entries && docData.faq_entries.length) {
+            html += '<h3 class="font-semibold text-blue-900 mb-2 mt-4">FAQs</h3>';
+            html += '<ul class="mb-4">';
+            docData.faq_entries.forEach(faq => {
+                html += `<li class="mb-2"><strong>Q:</strong> ${faq.question}<br><strong>A:</strong> ${faq.answer}</li>`;
+            });
+            html += '</ul>';
+        }
+        // About Us
+        if (docData.about_us && docData.about_us.length) {
+            const about = docData.about_us[0];
+            html += '<h3 class="font-semibold text-blue-900 mb-2 mt-4">About Us</h3>';
+            html += '<div class="mb-2">';
+            if (about.company_history) html += `<div><strong>History:</strong> ${about.company_history}</div>`;
+            if (about.mission) html += `<div><strong>Mission:</strong> ${about.mission}</div>`;
+            if (about.vision) html += `<div><strong>Vision:</strong> ${about.vision}</div>`;
+            if (about.core_values) html += `<div><strong>Core Values:</strong> ${about.core_values}</div>`;
+            if (about.team_info) html += `<div><strong>Team:</strong> ${about.team_info}</div>`;
+            if (about.achievements) html += `<div><strong>Achievements:</strong> ${about.achievements}</div>`;
+            if (about.unique_selling_points) html += `<div><strong>USP:</strong> ${about.unique_selling_points}</div>`;
+            html += '</div>';
+        }
+        // Services
+        if (docData.services && docData.services.length) {
+            html += '<h3 class="font-semibold text-blue-900 mb-2 mt-4">Services</h3>';
+            html += '<ul class="mb-4">';
+            docData.services.forEach(s => {
+                html += `<li class="mb-2"><strong>${s.service_name}</strong>`;
+                if (s.description) html += `: ${s.description}`;
+                if (s.target_audience) html += `<br><strong>Audience:</strong> ${s.target_audience}`;
+                if (s.benefits) html += `<br><strong>Benefits:</strong> ${s.benefits}`;
+                if (s.specialization) html += `<br><strong>Specialization:</strong> ${s.specialization}`;
+                html += '</li>';
+            });
+            html += '</ul>';
+        }
+        // Pricing
+        if (docData.pricing && docData.pricing.length) {
+            html += '<h3 class="font-semibold text-blue-900 mb-2 mt-4">Pricing</h3>';
+            html += '<ul class="mb-4">';
+            docData.pricing.forEach(p => {
+                html += `<li class="mb-2"><strong>${p.service_or_package}</strong>: ${p.price}`;
+                if (p.payment_terms) html += `<br><strong>Terms:</strong> ${p.payment_terms}`;
+                if (p.discounts) html += `<br><strong>Discounts:</strong> ${p.discounts}`;
+                if (p.additional_fees) html += `<br><strong>Fees:</strong> ${p.additional_fees}`;
+                if (p.notes) html += `<br><strong>Notes:</strong> ${p.notes}`;
+                html += '</li>';
+            });
+            html += '</ul>';
+        }
+        // Policies
+        if (docData.policies && docData.policies.length) {
+            html += '<h3 class="font-semibold text-blue-900 mb-2 mt-4">Policies</h3>';
+            html += '<ul class="mb-4">';
+            docData.policies.forEach(pol => {
+                html += `<li class="mb-2"><strong>${pol.policy_type}</strong>: ${pol.content}</li>`;
+            });
+            html += '</ul>';
+        }
+        // Training
+        if (docData.training && docData.training.length) {
+            html += '<h3 class="font-semibold text-blue-900 mb-2 mt-4">Training Materials</h3>';
+            html += '<ul class="mb-4">';
+            docData.training.forEach(t => {
+                html += `<li class="mb-2"><strong>${t.title}</strong>: ${t.content}</li>`;
+            });
+            html += '</ul>';
+        }
+        // Scripts
+        if (docData.scripts && docData.scripts.length) {
+            html += '<h3 class="font-semibold text-blue-900 mb-2 mt-4">Call Scripts</h3>';
+            html += '<ul class="mb-4">';
+            docData.scripts.forEach(s => {
+                html += `<li class="mb-2"><strong>${s.script_type}</strong>: ${s.content}</li>`;
+            });
+            html += '</ul>';
+        }
+        if (!html) {
+            html = '<p class="text-gray-600">No structured data found for this document.</p>';
+        }
+    }
+    modalTitle.textContent = 'Document Details';
+    modalContent.innerHTML = html;
+    modal.classList.remove('hidden');
+}
+
+function closeModal() {
+    document.getElementById('document-modal').classList.add('hidden');
+}
+
+function downloadDocument(url) {
+    // Create a temporary link to download the file
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = '';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// Close modal when clicking outside
+document.getElementById('document-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeModal();
+    }
+});
+</script>
+
+<style>
+.line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+</style>
+
+{% endblock %} 
