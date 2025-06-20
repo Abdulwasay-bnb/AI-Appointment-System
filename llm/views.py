@@ -75,99 +75,71 @@ Document Content:
 {text}
 
 """
-    
     if document_type == 'faq':
         return base_prompt + """
-Extract and organize the following information:
-- Common questions and their answers
-- Key business policies and procedures
-- Important contact information
-- Service-related FAQs
-- Booking and appointment FAQs
-
-Return as structured text with clear sections.
+Extract and organize the following information as a JSON array of objects, each with these keys:
+[
+  {"question": "...", "answer": "..."}
+]
+If no FAQs are found, return an empty array. Return ONLY the JSON, no explanation or extra text.
 """
     elif document_type == 'about':
         return base_prompt + """
-Extract the following information:
-- Company history and background
-- Mission and vision statements
-- Core values and principles
-- Team information
-- Company achievements and credentials
-- Unique selling propositions
-
-Return as structured text with clear sections.
+Extract the following information and return it as a JSON object with these keys:
+{
+  "company_history": "...",
+  "mission": "...",
+  "vision": "...",
+  "core_values": "...",
+  "team_info": "...",
+  "achievements": "...",
+  "unique_selling_points": "..."
+}
+If any field is missing, use an empty string. Return ONLY the JSON object, no explanation or extra text.
 """
     elif document_type == 'services':
         return base_prompt + """
-Extract the following information:
-- List of services offered
-- Service descriptions and features
-- Target audience for each service
-- Service benefits and advantages
-- Any specializations or expertise areas
-
-Return as structured text with clear sections.
+Extract the following information as a JSON array of objects, each with these keys:
+[
+  {"service_name": "...", "description": "...", "target_audience": "...", "benefits": "...", "specialization": "..."}
+]
+If no services are found, return an empty array. Return ONLY the JSON, no explanation or extra text.
 """
     elif document_type == 'pricing':
         return base_prompt + """
-Extract the following information:
-- Service pricing structure
-- Package options and tiers
-- Payment terms and conditions
-- Discounts or special offers
-- Additional fees or charges
-- Pricing policies
-
-Return as structured text with clear sections.
+Extract the following information as a JSON array of objects, each with these keys:
+[
+  {"service_or_package": "...", "price": "...", "payment_terms": "...", "discounts": "...", "additional_fees": "...", "notes": "..."}
+]
+If no pricing info is found, return an empty array. Return ONLY the JSON, no explanation or extra text.
 """
     elif document_type == 'policies':
         return base_prompt + """
-Extract the following information:
-- Booking and cancellation policies
-- Payment and refund policies
-- Privacy and data protection policies
-- Terms of service
-- Client responsibilities
-- Company obligations
-
-Return as structured text with clear sections.
+Extract the following information as a JSON array of objects, each with these keys:
+[
+  {"policy_type": "...", "content": "..."}
+]
+If no policies are found, return an empty array. Return ONLY the JSON, no explanation or extra text.
 """
     elif document_type == 'training':
         return base_prompt + """
-Extract the following information:
-- Training procedures and protocols
-- Best practices and guidelines
-- Service delivery standards
-- Quality assurance processes
-- Customer interaction guidelines
-- Problem resolution procedures
-
-Return as structured text with clear sections.
+Extract the following information as a JSON array of objects, each with these keys:
+[
+  {"title": "...", "content": "..."}
+]
+If no training materials are found, return an empty array. Return ONLY the JSON, no explanation or extra text.
 """
     elif document_type == 'scripts':
         return base_prompt + """
-Extract the following information:
-- Call opening scripts
-- Service introduction scripts
-- Objection handling responses
-- Closing and booking scripts
-- Follow-up call scripts
-- Key talking points and value propositions
-
-Return as structured text with clear sections.
+Extract the following information as a JSON array of objects, each with these keys:
+[
+  {"script_type": "...", "content": "..."}
+]
+If no scripts are found, return an empty array. Return ONLY the JSON, no explanation or extra text.
 """
     else:
         return base_prompt + """
-Extract any relevant business information including:
-- Business details and descriptions
-- Services and offerings
-- Policies and procedures
-- Contact information
-- Key messages and value propositions
-
-Return as structured text with clear sections.
+Extract any relevant business information as a JSON object. Return ONLY the JSON object, no explanation or extra text.
 """
 
 def parse_and_store_extracted_content(document_type, extracted_content, business_doc):
@@ -177,7 +149,6 @@ def parse_and_store_extracted_content(document_type, extracted_content, business
     """
     summary = ""
     try:
-        # Try to load as JSON first (if LLM output is JSON)
         data = None
         try:
             data = json.loads(extracted_content)
@@ -189,7 +160,6 @@ def parse_and_store_extracted_content(document_type, extracted_content, business
             if data and isinstance(data, list):
                 faqs = data
             else:
-                # Fallback: parse Q: ... A: ...
                 import re
                 faqs = re.findall(r'Q[:：](.*?)A[:：](.*?)(?=Q[:：]|$)', extracted_content, re.DOTALL|re.IGNORECASE)
                 faqs = [{'question': q.strip(), 'answer': a.strip()} for q, a in faqs]
@@ -212,9 +182,22 @@ def parse_and_store_extracted_content(document_type, extracted_content, business
                 )
                 summary = "About Us info stored."
             else:
-                # Fallback: store all as company_history
-                AboutUsInfo.objects.create(document=business_doc, company_history=extracted_content)
-                summary = "About Us info (raw) stored."
+                # Fallback: try to extract all fields using regex
+                import re
+                def extract_field(field):
+                    match = re.search(rf"{field}[:：]\s*(.*?)(?=\n\w+[:：]|$)", extracted_content, re.IGNORECASE|re.DOTALL)
+                    return match.group(1).strip() if match else ''
+                AboutUsInfo.objects.create(
+                    document=business_doc,
+                    company_history=extract_field('company_history'),
+                    mission=extract_field('mission'),
+                    vision=extract_field('vision'),
+                    core_values=extract_field('core_values'),
+                    team_info=extract_field('team_info'),
+                    achievements=extract_field('achievements'),
+                    unique_selling_points=extract_field('unique_selling_points'),
+                )
+                summary = "About Us info (regex fallback) stored."
         # Services
         elif document_type == 'services':
             services = []
@@ -450,13 +433,13 @@ def business_documents_view(request):
     structured_data = {}
     for doc in documents:
         structured_data[doc.id] = {
-            'faq_entries': list(doc.faq_entries.values('question', 'answer')),
-            'about_us': list(doc.about_us_info.values()),
-            'services': list(doc.service_infos.values()),
-            'pricing': list(doc.pricing_infos.values()),
-            'policies': list(doc.policy_infos.values()),
-            'training': list(doc.training_materials.values()),
-            'scripts': list(doc.call_scripts.values()),
+            'faq_entries': [{k: str(v) for k, v in entry.items()} for entry in doc.faq_entries.values('question', 'answer')],
+            'about_us': [{k: str(v) for k, v in entry.items()} for entry in doc.about_us_info.values()],
+            'services': [{k: str(v) for k, v in entry.items()} for entry in doc.service_infos.values()],
+            'pricing': [{k: str(v) for k, v in entry.items()} for entry in doc.pricing_infos.values()],
+            'policies': [{k: str(v) for k, v in entry.items()} for entry in doc.policy_infos.values()],
+            'training': [{k: str(v) for k, v in entry.items()} for entry in doc.training_materials.values()],
+            'scripts': [{k: str(v) for k, v in entry.items()} for entry in doc.call_scripts.values()],
         }
     return render(request, 'llm/business_documents.html', {
         'documents': documents,

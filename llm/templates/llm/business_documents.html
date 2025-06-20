@@ -64,10 +64,10 @@
                         </div>
                         
                         <div class="flex space-x-2">
-                            <button class="btn-secondary text-sm px-3 py-1" onclick="viewDocument({{ doc.id }})">
+                            <button class="btn-secondary text-sm px-3 py-1 view-document-btn" data-doc-id="{{ doc.id }}">
                                 👁️ View
                             </button>
-                            <button class="btn-secondary text-sm px-3 py-1" onclick="downloadDocument('{{ doc.document.url }}')">
+                            <button class="btn-secondary text-sm px-3 py-1 download-document-btn" data-doc-url="{{ doc.document.url }}">
                                 📥 Download
                             </button>
                         </div>
@@ -111,128 +111,6 @@
     </div>
 </div>
 
-<script>
-// Pass structured data from Django to JS
-const structuredData = {{ structured_data|safe }};
-
-function viewDocument(docId) {
-    const modal = document.getElementById('document-modal');
-    const modalTitle = document.getElementById('modal-title');
-    const modalContent = document.getElementById('modal-content');
-    const docData = structuredData[docId];
-    let html = '';
-    if (!docData) {
-        html = '<p class="text-gray-600">No structured data found for this document.</p>';
-    } else {
-        // FAQ
-        if (docData.faq_entries && docData.faq_entries.length) {
-            html += '<h3 class="font-semibold text-blue-900 mb-2 mt-4">FAQs</h3>';
-            html += '<ul class="mb-4">';
-            docData.faq_entries.forEach(faq => {
-                html += `<li class="mb-2"><strong>Q:</strong> ${faq.question}<br><strong>A:</strong> ${faq.answer}</li>`;
-            });
-            html += '</ul>';
-        }
-        // About Us
-        if (docData.about_us && docData.about_us.length) {
-            const about = docData.about_us[0];
-            html += '<h3 class="font-semibold text-blue-900 mb-2 mt-4">About Us</h3>';
-            html += '<div class="mb-2">';
-            if (about.company_history) html += `<div><strong>History:</strong> ${about.company_history}</div>`;
-            if (about.mission) html += `<div><strong>Mission:</strong> ${about.mission}</div>`;
-            if (about.vision) html += `<div><strong>Vision:</strong> ${about.vision}</div>`;
-            if (about.core_values) html += `<div><strong>Core Values:</strong> ${about.core_values}</div>`;
-            if (about.team_info) html += `<div><strong>Team:</strong> ${about.team_info}</div>`;
-            if (about.achievements) html += `<div><strong>Achievements:</strong> ${about.achievements}</div>`;
-            if (about.unique_selling_points) html += `<div><strong>USP:</strong> ${about.unique_selling_points}</div>`;
-            html += '</div>';
-        }
-        // Services
-        if (docData.services && docData.services.length) {
-            html += '<h3 class="font-semibold text-blue-900 mb-2 mt-4">Services</h3>';
-            html += '<ul class="mb-4">';
-            docData.services.forEach(s => {
-                html += `<li class="mb-2"><strong>${s.service_name}</strong>`;
-                if (s.description) html += `: ${s.description}`;
-                if (s.target_audience) html += `<br><strong>Audience:</strong> ${s.target_audience}`;
-                if (s.benefits) html += `<br><strong>Benefits:</strong> ${s.benefits}`;
-                if (s.specialization) html += `<br><strong>Specialization:</strong> ${s.specialization}`;
-                html += '</li>';
-            });
-            html += '</ul>';
-        }
-        // Pricing
-        if (docData.pricing && docData.pricing.length) {
-            html += '<h3 class="font-semibold text-blue-900 mb-2 mt-4">Pricing</h3>';
-            html += '<ul class="mb-4">';
-            docData.pricing.forEach(p => {
-                html += `<li class="mb-2"><strong>${p.service_or_package}</strong>: ${p.price}`;
-                if (p.payment_terms) html += `<br><strong>Terms:</strong> ${p.payment_terms}`;
-                if (p.discounts) html += `<br><strong>Discounts:</strong> ${p.discounts}`;
-                if (p.additional_fees) html += `<br><strong>Fees:</strong> ${p.additional_fees}`;
-                if (p.notes) html += `<br><strong>Notes:</strong> ${p.notes}`;
-                html += '</li>';
-            });
-            html += '</ul>';
-        }
-        // Policies
-        if (docData.policies && docData.policies.length) {
-            html += '<h3 class="font-semibold text-blue-900 mb-2 mt-4">Policies</h3>';
-            html += '<ul class="mb-4">';
-            docData.policies.forEach(pol => {
-                html += `<li class="mb-2"><strong>${pol.policy_type}</strong>: ${pol.content}</li>`;
-            });
-            html += '</ul>';
-        }
-        // Training
-        if (docData.training && docData.training.length) {
-            html += '<h3 class="font-semibold text-blue-900 mb-2 mt-4">Training Materials</h3>';
-            html += '<ul class="mb-4">';
-            docData.training.forEach(t => {
-                html += `<li class="mb-2"><strong>${t.title}</strong>: ${t.content}</li>`;
-            });
-            html += '</ul>';
-        }
-        // Scripts
-        if (docData.scripts && docData.scripts.length) {
-            html += '<h3 class="font-semibold text-blue-900 mb-2 mt-4">Call Scripts</h3>';
-            html += '<ul class="mb-4">';
-            docData.scripts.forEach(s => {
-                html += `<li class="mb-2"><strong>${s.script_type}</strong>: ${s.content}</li>`;
-            });
-            html += '</ul>';
-        }
-        if (!html) {
-            html = '<p class="text-gray-600">No structured data found for this document.</p>';
-        }
-    }
-    modalTitle.textContent = 'Document Details';
-    modalContent.innerHTML = html;
-    modal.classList.remove('hidden');
-}
-
-function closeModal() {
-    document.getElementById('document-modal').classList.add('hidden');
-}
-
-function downloadDocument(url) {
-    // Create a temporary link to download the file
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = '';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
-
-// Close modal when clicking outside
-document.getElementById('document-modal').addEventListener('click', function(e) {
-    if (e.target === this) {
-        closeModal();
-    }
-});
-</script>
-
 <style>
 .line-clamp-3 {
     display: -webkit-box;
@@ -241,5 +119,158 @@ document.getElementById('document-modal').addEventListener('click', function(e) 
     overflow: hidden;
 }
 </style>
+
+<script>
+// NOTE: If you see a 'datetime is not defined' error, it is NOT from this template. This template does not use any 'datetime' variable in JS. The error is likely from a browser extension or external JS file.
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Pass structured data from Django to JS
+    const structuredData = {{ structured_data|safe }};
+
+    window.viewDocument = function(docId) {
+        const modal = document.getElementById('document-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalContent = document.getElementById('modal-content');
+        const docData = structuredData[docId];
+        let html = '';
+        if (!docData) {
+            html = '<p class="text-gray-600">No structured data found for this document.</p>';
+        } else {
+            // FAQ
+            if (docData.faq_entries && docData.faq_entries.length) {
+                html += '<h3 class="font-semibold text-blue-900 mb-2 mt-4">FAQs</h3>';
+                html += '<ul class="mb-4">';
+                docData.faq_entries.forEach(faq => {
+                    html += `<li class="mb-2"><strong>Q:</strong> ${faq.question}<br><strong>A:</strong> ${faq.answer}</li>`;
+                });
+                html += '</ul>';
+            }
+            // About Us (show all fields, even if empty)
+            if (docData.about_us && docData.about_us.length) {
+                const about = docData.about_us[0];
+                html += '<h3 class="font-semibold text-blue-900 mb-2 mt-4">About Us</h3>';
+                html += '<div class="mb-2">';
+                html += `<div><strong>Company History:</strong> ${about.company_history || 'N/A'}</div>`;
+                html += `<div><strong>Mission:</strong> ${about.mission || 'N/A'}</div>`;
+                html += `<div><strong>Vision:</strong> ${about.vision || 'N/A'}</div>`;
+                html += `<div><strong>Core Values:</strong> ${about.core_values || 'N/A'}</div>`;
+                html += `<div><strong>Team Info:</strong> ${about.team_info || 'N/A'}</div>`;
+                html += `<div><strong>Achievements:</strong> ${about.achievements || 'N/A'}</div>`;
+                html += `<div><strong>Unique Selling Points:</strong> ${about.unique_selling_points || 'N/A'}</div>`;
+                // Show created_at if present
+                if (about.created_at) {
+                    let createdAt = about.created_at;
+                    if (typeof createdAt === 'object' && createdAt !== null && createdAt.hasOwnProperty('isoformat')) {
+                        createdAt = createdAt.isoformat;
+                    }
+                    html += `<div><strong>Created At:</strong> ${createdAt || 'N/A'}</div>`;
+                }
+                // Show any extra fields
+                for (const key in about) {
+                    if (!["company_history","mission","vision","core_values","team_info","achievements","unique_selling_points","created_at","id","document_id"].includes(key)) {
+                        html += `<div><strong>${key}:</strong> ${about[key]}</div>`;
+                    }
+                }
+                html += '</div>';
+            }
+            // Services
+            if (docData.services && docData.services.length) {
+                html += '<h3 class="font-semibold text-blue-900 mb-2 mt-4">Services</h3>';
+                html += '<ul class="mb-4">';
+                docData.services.forEach(s => {
+                    html += `<li class="mb-2"><strong>${s.service_name}</strong>`;
+                    if (s.description) html += `: ${s.description}`;
+                    if (s.target_audience) html += `<br><strong>Audience:</strong> ${s.target_audience}`;
+                    if (s.benefits) html += `<br><strong>Benefits:</strong> ${s.benefits}`;
+                    if (s.specialization) html += `<br><strong>Specialization:</strong> ${s.specialization}`;
+                    html += '</li>';
+                });
+                html += '</ul>';
+            }
+            // Pricing
+            if (docData.pricing && docData.pricing.length) {
+                html += '<h3 class="font-semibold text-blue-900 mb-2 mt-4">Pricing</h3>';
+                html += '<ul class="mb-4">';
+                docData.pricing.forEach(p => {
+                    html += `<li class="mb-2"><strong>${p.service_or_package}</strong>: ${p.price}`;
+                    if (p.payment_terms) html += `<br><strong>Terms:</strong> ${p.payment_terms}`;
+                    if (p.discounts) html += `<br><strong>Discounts:</strong> ${p.discounts}`;
+                    if (p.additional_fees) html += `<br><strong>Fees:</strong> ${p.additional_fees}`;
+                    if (p.notes) html += `<br><strong>Notes:</strong> ${p.notes}`;
+                    html += '</li>';
+                });
+                html += '</ul>';
+            }
+            // Policies
+            if (docData.policies && docData.policies.length) {
+                html += '<h3 class="font-semibold text-blue-900 mb-2 mt-4">Policies</h3>';
+                html += '<ul class="mb-4">';
+                docData.policies.forEach(pol => {
+                    html += `<li class="mb-2"><strong>${pol.policy_type}</strong>: ${pol.content}</li>`;
+                });
+                html += '</ul>';
+            }
+            // Training (fix: use training_materials)
+            if (docData.training_materials && docData.training_materials.length) {
+                html += '<h3 class="font-semibold text-blue-900 mb-2 mt-4">Training Materials</h3>';
+                html += '<ul class="mb-4">';
+                docData.training_materials.forEach(t => {
+                    html += `<li class="mb-2"><strong>${t.title}</strong>: ${t.content}</li>`;
+                });
+                html += '</ul>';
+            }
+            // Scripts
+            if (docData.scripts && docData.scripts.length) {
+                html += '<h3 class="font-semibold text-blue-900 mb-2 mt-4">Call Scripts</h3>';
+                html += '<ul class="mb-4">';
+                docData.scripts.forEach(s => {
+                    html += `<li class="mb-2"><strong>${s.script_type}</strong>: ${s.content}</li>`;
+                });
+                html += '</ul>';
+            }
+            if (!html) {
+                html = '<p class="text-gray-600">No structured data found for this document.</p>';
+            }
+        }
+        modalTitle.textContent = 'Document Details';
+        modalContent.innerHTML = html;
+        modal.classList.remove('hidden');
+    }
+
+    window.closeModal = function() {
+        document.getElementById('document-modal').classList.add('hidden');
+    }
+
+    window.downloadDocument = function(url) {
+        // Create a temporary link to download the file
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = '';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    // Close modal when clicking outside
+    document.getElementById('document-modal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            window.closeModal();
+        }
+    });
+
+    document.querySelectorAll('.view-document-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const docId = this.getAttribute('data-doc-id');
+            window.viewDocument(parseInt(docId));
+        });
+    });
+    document.querySelectorAll('.download-document-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const url = this.getAttribute('data-doc-url');
+            window.downloadDocument(url);
+        });
+    });
+});
+</script>
 
 {% endblock %} 
