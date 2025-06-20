@@ -203,6 +203,12 @@ def parse_and_store_extracted_content(document_type, extracted_content, business
             services = []
             if data and isinstance(data, list):
                 services = data
+            elif data and isinstance(data, dict):
+                # Accept any key that contains 'service' in its name and is a list
+                for k, v in data.items():
+                    if 'service' in k.lower() and isinstance(v, list):
+                        services = v
+                        break
             else:
                 # Fallback: parse Service: ... Description: ...
                 import re
@@ -213,9 +219,9 @@ def parse_and_store_extracted_content(document_type, extracted_content, business
                     document=business_doc,
                     service_name=s.get('service_name', ''),
                     description=s.get('description', ''),
-                    target_audience=s.get('target_audience', ''),
-                    benefits=s.get('benefits', ''),
-                    specialization=s.get('specialization', ''),
+                    target_audience=', '.join(s['target_audience']) if isinstance(s.get('target_audience'), list) else s.get('target_audience', ''),
+                    benefits=', '.join(s['benefits']) if isinstance(s.get('benefits'), list) else s.get('benefits', ''),
+                    specialization=', '.join(s['specialization']) if isinstance(s.get('specialization'), list) else s.get('specialization', ''),
                 )
             summary = f"Stored {len(services)} services."
         # Pricing
@@ -223,6 +229,10 @@ def parse_and_store_extracted_content(document_type, extracted_content, business
             pricings = []
             if data and isinstance(data, list):
                 pricings = data
+            elif data and isinstance(data, dict) and 'pricing' in data and isinstance(data['pricing'], list):
+                pricings = data['pricing']
+            elif data and isinstance(data, dict) and 'pricings' in data and isinstance(data['pricings'], list):
+                pricings = data['pricings']
             else:
                 # Fallback: parse Package: ... Price: ...
                 import re
@@ -244,6 +254,8 @@ def parse_and_store_extracted_content(document_type, extracted_content, business
             policies = []
             if data and isinstance(data, list):
                 policies = data
+            elif data and isinstance(data, dict) and 'policies' in data and isinstance(data['policies'], list):
+                policies = data['policies']
             else:
                 # Fallback: parse Policy: ... Content: ...
                 import re
@@ -261,6 +273,10 @@ def parse_and_store_extracted_content(document_type, extracted_content, business
             trainings = []
             if data and isinstance(data, list):
                 trainings = data
+            elif data and isinstance(data, dict) and 'training' in data and isinstance(data['training'], list):
+                trainings = data['training']
+            elif data and isinstance(data, dict) and 'trainings' in data and isinstance(data['trainings'], list):
+                trainings = data['trainings']
             else:
                 # Fallback: parse Title: ... Content: ...
                 import re
@@ -278,6 +294,8 @@ def parse_and_store_extracted_content(document_type, extracted_content, business
             scripts = []
             if data and isinstance(data, list):
                 scripts = data
+            elif data and isinstance(data, dict) and 'scripts' in data and isinstance(data['scripts'], list):
+                scripts = data['scripts']
             else:
                 # Fallback: parse Script Type: ... Content: ...
                 import re
@@ -325,28 +343,31 @@ def upload_business_doc(request):
         # Extract relevant information using LLM
         try:
             prompt = get_extraction_prompt(document_type, text)
+            print("\n--- LLM PROMPT ---\n", prompt)
             response = chat(model='llama3.2:1B', messages=[
                 {'role': 'user', 'content': prompt},
             ])
-            extracted_content = response.message.content
-            
+            extracted_content = response.message.content if hasattr(response, 'message') else str(response)
+            print("\n--- LLM extracted_content ---\n", extracted_content)
+            if not extracted_content or not extracted_content.strip():
+                business_doc.delete()
+                return JsonResponse({'error': 'LLM returned no content. Is Ollama running and the model available?'}, status=500)
             # Update the document with extracted content
             business_doc.extracted_content = extracted_content
             business_doc.is_processed = True
             business_doc.save()
-            
             # Parse and store structured data
             summary = parse_and_store_extracted_content(document_type, extracted_content, business_doc)
-            
             return JsonResponse({
                 'message': f'{business_doc.get_document_type_display()} processed successfully. {summary}',
                 'document_id': business_doc.id,
                 'extracted_content': extracted_content[:500] + '...' if len(extracted_content) > 500 else extracted_content
             })
-            
         except Exception as e:
+            import traceback
+            print("\n--- LLM ERROR ---\n", traceback.format_exc())
             business_doc.delete()
-            return JsonResponse({'error': f'Failed to process document: {str(e)}'}, status=500)
+            return JsonResponse({'error': f'Failed to process document: {str(e)}. Is Ollama running and the model available?'}, status=500)
     
     return JsonResponse({'error': 'Only POST allowed.'}, status=405)
 

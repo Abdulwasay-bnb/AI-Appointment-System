@@ -15,7 +15,15 @@ admin.site.unregister(Group)
 class UserProfileInline(StackedInline):
     model = UserProfile
     can_delete = False
-    verbose_name_plural = 'Profile'
+    verbose_name_plural = 'User Profile'
+    fields = (
+        'is_client_portal_user', 'profile_image',
+        'google_calendar_id', 'google_calendar_connected', 'google_calendar_sync_enabled',
+        'default_event_duration', 'working_hours_start', 'working_hours_end', 'timezone',
+        'show_weekends', 'first_day_of_week', 'email_notifications', 'reminder_minutes',
+        'created_at', 'updated_at'
+    )
+    readonly_fields = ('created_at', 'updated_at')
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin, ModelAdmin):
@@ -24,12 +32,17 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
     change_password_form = AdminPasswordChangeForm
     
     inlines = (UserProfileInline,)
-    list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff', 'get_is_client_portal_user')
+    list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff', 'get_calendar_connected')
+    list_filter = ('is_staff', 'is_superuser', 'is_active', 'userprofile__google_calendar_connected')
+    search_fields = ('username', 'first_name', 'last_name', 'email')
     
-    def get_is_client_portal_user(self, obj):
-        return obj.userprofile.is_client_portal_user
-    get_is_client_portal_user.short_description = 'Client Portal User'
-    get_is_client_portal_user.boolean = True
+    def get_calendar_connected(self, obj):
+        try:
+            return obj.userprofile.google_calendar_connected
+        except UserProfile.DoesNotExist:
+            return False
+    get_calendar_connected.boolean = True
+    get_calendar_connected.short_description = 'Google Calendar Connected'
 
 @admin.register(Group)
 class GroupAdmin(BaseGroupAdmin, ModelAdmin):
@@ -37,5 +50,33 @@ class GroupAdmin(BaseGroupAdmin, ModelAdmin):
 
 @admin.register(UserProfile)
 class UserProfileAdmin(ModelAdmin):
-    list_display = ('user', 'is_client_portal_user')
-    search_fields = ('user__username', 'user__email')
+    list_display = ['user', 'google_calendar_connected', 'timezone', 'default_event_duration', 'created_at']
+    list_filter = ['google_calendar_connected', 'google_calendar_sync_enabled', 'timezone', 'show_weekends', 'email_notifications']
+    search_fields = ['user__username', 'user__email', 'user__first_name', 'user__last_name']
+    readonly_fields = ['created_at', 'updated_at']
+    
+    fieldsets = (
+        ('User Information', {
+            'fields': ('user', 'is_client_portal_user', 'profile_image')
+        }),
+        ('Google Calendar Integration', {
+            'fields': (
+                'google_calendar_id', 'google_calendar_connected', 'google_calendar_sync_enabled',
+                'google_access_token', 'google_refresh_token', 'google_token_expiry'
+            ),
+            'classes': ('collapse',)
+        }),
+        ('Calendar Settings', {
+            'fields': (
+                'default_event_duration', 'working_hours_start', 'working_hours_end', 'timezone',
+                'show_weekends', 'first_day_of_week'
+            )
+        }),
+        ('Notification Settings', {
+            'fields': ('email_notifications', 'reminder_minutes')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )

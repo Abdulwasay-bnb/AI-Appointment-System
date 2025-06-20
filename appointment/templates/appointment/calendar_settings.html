@@ -1,0 +1,186 @@
+{% extends 'shared/skeleton.html' %}
+
+{% block title %}Calendar Settings - AI Appointment System{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Calendar Settings</h1>
+            <p class="text-gray-600">Manage your calendar preferences and Google Calendar integration</p>
+        </div>
+
+        <!-- Google Calendar Connection Status -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-semibold text-gray-900 mb-2">Google Calendar Integration</h2>
+                    <p class="text-gray-600">
+                        {% if user_profile.is_google_calendar_connected %}
+                            <span class="text-green-600">✓ Connected</span> - Your calendar is synced with Google Calendar
+                        {% else %}
+                            <span class="text-red-600">✗ Not Connected</span> - Connect your Google Calendar to sync events
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="flex space-x-3">
+                    {% if user_profile.is_google_calendar_connected %}
+                        <a href="{% url 'appointment:google_calendar_disconnect' %}" 
+                           class="inline-flex items-center px-4 py-2 border border-red-300 rounded-md shadow-sm text-sm font-medium text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                            <i class="fas fa-unlink mr-2"></i>
+                            Disconnect
+                        </a>
+                        <a href="{% url 'appointment:google_calendar_sync' %}" 
+                           class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            <i class="fas fa-sync mr-2"></i>
+                            Sync Now
+                        </a>
+                    {% else %}
+                        <a href="{% url 'appointment:google_calendar_auth' %}" 
+                           class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            <i class="fab fa-google mr-2"></i>
+                            Connect Google Calendar
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Form -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-6">Calendar Preferences</h2>
+            
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+                
+                <!-- Google Calendar Sync -->
+                <div class="border-b border-gray-200 pb-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Google Calendar Sync</h3>
+                    <div class="flex items-center">
+                        {{ form.google_calendar_sync_enabled }}
+                        <label for="{{ form.google_calendar_sync_enabled.id_for_label }}" class="ml-3 text-sm text-gray-700">
+                            Automatically sync events with Google Calendar
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Default Settings -->
+                <div class="border-b border-gray-200 pb-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Default Settings</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="{{ form.default_event_duration.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Default Event Duration
+                            </label>
+                            {{ form.default_event_duration }}
+                        </div>
+                        <div>
+                            <label for="{{ form.timezone.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Timezone
+                            </label>
+                            {{ form.timezone }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Working Hours -->
+                <div class="border-b border-gray-200 pb-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Working Hours</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="{{ form.working_hours_start.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Start Time
+                            </label>
+                            {{ form.working_hours_start }}
+                        </div>
+                        <div>
+                            <label for="{{ form.working_hours_end.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                End Time
+                            </label>
+                            {{ form.working_hours_end }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Calendar Display -->
+                <div class="border-b border-gray-200 pb-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Calendar Display</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-center">
+                            {{ form.show_weekends }}
+                            <label for="{{ form.show_weekends.id_for_label }}" class="ml-3 text-sm text-gray-700">
+                                Show weekends in calendar
+                            </label>
+                        </div>
+                        <div>
+                            <label for="{{ form.first_day_of_week.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                First Day of Week
+                            </label>
+                            {{ form.first_day_of_week }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notifications -->
+                <div class="border-b border-gray-200 pb-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Notifications</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-center">
+                            {{ form.email_notifications }}
+                            <label for="{{ form.email_notifications.id_for_label }}" class="ml-3 text-sm text-gray-700">
+                                Send email notifications for events
+                            </label>
+                        </div>
+                        <div>
+                            <label for="{{ form.reminder_minutes.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Default Reminder Time
+                            </label>
+                            {{ form.reminder_minutes }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="flex justify-end">
+                    <button type="submit" class="inline-flex items-center px-6 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <i class="fas fa-save mr-2"></i>
+                        Save Settings
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="mt-8 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <a href="{% url 'appointment:calendar' %}" 
+                   class="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                    <i class="fas fa-calendar-alt text-blue-600 text-xl mr-3"></i>
+                    <div>
+                        <h3 class="font-medium text-gray-900">View Calendar</h3>
+                        <p class="text-sm text-gray-600">Go to your calendar</p>
+                    </div>
+                </a>
+                <a href="{% url 'appointment:event_create' %}" 
+                   class="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                    <i class="fas fa-plus text-green-600 text-xl mr-3"></i>
+                    <div>
+                        <h3 class="font-medium text-gray-900">Create Event</h3>
+                        <p class="text-sm text-gray-600">Add a new event</p>
+                    </div>
+                </a>
+                <a href="{% url 'appointment:available_slots' %}" 
+                   class="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                    <i class="fas fa-clock text-purple-600 text-xl mr-3"></i>
+                    <div>
+                        <h3 class="font-medium text-gray-900">Manage Slots</h3>
+                        <p class="text-sm text-gray-600">Set available times</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

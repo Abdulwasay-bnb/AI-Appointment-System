@@ -81,54 +81,54 @@ class BusinessDocumentAdmin(ModelAdmin):
         inlines = type_to_inline.get(obj.document_type, [])
         return [inline(self.model, self.admin_site) for inline in inlines]
 
-class FAQEntryAdmin(ModelAdmin):
-    list_display = ("document", "question", "created_at")
-    search_fields = ("question", "answer", "document__user__username")
-    list_filter = ("created_at",)
-    readonly_fields = ("created_at",)
+# class FAQEntryAdmin(ModelAdmin):
+#     list_display = ("document", "question", "created_at")
+#     search_fields = ("question", "answer", "document__user__username")
+#     list_filter = ("created_at",)
+#     readonly_fields = ("created_at",)
 
-class AboutUsInfoAdmin(ModelAdmin):
-    list_display = ("document", "company_history", "mission", "vision", "created_at")
-    search_fields = ("company_history", "mission", "vision", "document__user__username")
-    list_filter = ("created_at",)
-    readonly_fields = ("created_at",)
+# class AboutUsInfoAdmin(ModelAdmin):
+#     list_display = ("document", "company_history", "mission", "vision", "created_at")
+#     search_fields = ("company_history", "mission", "vision", "document__user__username")
+#     list_filter = ("created_at",)
+#     readonly_fields = ("created_at",)
 
-class ServiceInfoAdmin(ModelAdmin):
-    list_display = ("document", "service_name", "specialization", "created_at")
-    search_fields = ("service_name", "description", "document__user__username")
-    list_filter = ("specialization", "created_at")
-    readonly_fields = ("created_at",)
+# class ServiceInfoAdmin(ModelAdmin):
+#     list_display = ("document", "service_name", "specialization", "created_at")
+#     search_fields = ("service_name", "description", "document__user__username")
+#     list_filter = ("specialization", "created_at")
+#     readonly_fields = ("created_at",)
 
-class PricingInfoAdmin(ModelAdmin):
-    list_display = ("document", "service_or_package", "price", "created_at")
-    search_fields = ("service_or_package", "price", "document__user__username")
-    list_filter = ("created_at",)
-    readonly_fields = ("created_at",)
+# class PricingInfoAdmin(ModelAdmin):
+#     list_display = ("document", "service_or_package", "price", "created_at")
+#     search_fields = ("service_or_package", "price", "document__user__username")
+#     list_filter = ("created_at",)
+#     readonly_fields = ("created_at",)
 
-class PolicyInfoAdmin(ModelAdmin):
-    list_display = ("document", "policy_type", "created_at")
-    search_fields = ("policy_type", "content", "document__user__username")
-    list_filter = ("policy_type", "created_at")
-    readonly_fields = ("created_at",)
+# class PolicyInfoAdmin(ModelAdmin):
+#     list_display = ("document", "policy_type", "created_at")
+#     search_fields = ("policy_type", "content", "document__user__username")
+#     list_filter = ("policy_type", "created_at")
+#     readonly_fields = ("created_at",)
 
-class TrainingMaterialAdmin(ModelAdmin):
-    list_display = ("document", "title", "created_at")
-    search_fields = ("title", "content", "document__user__username")
-    list_filter = ("created_at",)
-    readonly_fields = ("created_at",)
+# class TrainingMaterialAdmin(ModelAdmin):
+#     list_display = ("document", "title", "created_at")
+#     search_fields = ("title", "content", "document__user__username")
+#     list_filter = ("created_at",)
+#     readonly_fields = ("created_at",)
 
-class CallScriptAdmin(ModelAdmin):
-    list_display = ("document", "script_type", "created_at")
-    search_fields = ("script_type", "content", "document__user__username")
-    list_filter = ("script_type", "created_at")
-    readonly_fields = ("created_at",)
+# class CallScriptAdmin(ModelAdmin):
+#     list_display = ("document", "script_type", "created_at")
+#     search_fields = ("script_type", "content", "document__user__username")
+#     list_filter = ("script_type", "created_at")
+#     readonly_fields = ("created_at",)
 
 admin.site.register(BusinessInfo, BusinessAdmin)
 admin.site.register(BusinessDocument, BusinessDocumentAdmin)
-admin.site.register(FAQEntry, FAQEntryAdmin)
-admin.site.register(AboutUsInfo, AboutUsInfoAdmin)
-admin.site.register(ServiceInfo, ServiceInfoAdmin)
-admin.site.register(PricingInfo, PricingInfoAdmin)
-admin.site.register(PolicyInfo, PolicyInfoAdmin)
-admin.site.register(TrainingMaterial, TrainingMaterialAdmin)
-admin.site.register(CallScript, CallScriptAdmin)
+# admin.site.register(FAQEntry, FAQEntryAdmin)
+# admin.site.register(AboutUsInfo, AboutUsInfoAdmin)
+# admin.site.register(ServiceInfo, ServiceInfoAdmin)
+# admin.site.register(PricingInfo, PricingInfoAdmin)
+# admin.site.register(PolicyInfo, PolicyInfoAdmin)
+# admin.site.register(TrainingMaterial, TrainingMaterialAdmin)
+# admin.site.register(CallScript, CallScriptAdmin)

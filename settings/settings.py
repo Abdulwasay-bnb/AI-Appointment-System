@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'user_auth',
     'tts',
     'llm',
+    'appointment',
 ]
 
 MIDDLEWARE = [
@@ -316,3 +317,15 @@ UNFOLD = {
 
 # def permission_callback(request):
 #     return request.user.has_perm("sample_app.change_model")
+
+# Google Client ID and Secret
+CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
+CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET')
+
+# Google Calendar API
+GOOGLE_CALENDAR_API_URL = 'https://www.googleapis.com/calendar/v3/calendars/primary/events'
+
+# Google Calendar API Scopes
+GOOGLE_CALENDAR_SCOPES = [
+    'https://www.googleapis.com/auth/calendar',
+]

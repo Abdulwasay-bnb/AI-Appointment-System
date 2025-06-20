@@ -25,6 +25,7 @@ urlpatterns = [
     path('', include('user_auth.urls')),  # Include user_auth app URLs
     path('tts/', include('tts.urls')),  # Include tts app URLs
     path('llm/', include('llm.urls')),  # Include llm app URLs
+    path('appointment/', include('appointment.urls')),  # Include appointment app URLs
     path('favicon.ico', RedirectView.as_view(url=settings.STATIC_URL + 'favicon.ico', permanent=True)),
 ]
 

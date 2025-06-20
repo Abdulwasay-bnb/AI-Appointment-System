@@ -1,0 +1,192 @@
+{% extends 'shared/skeleton.html' %}
+{% load static %}
+
+{% block title %}{{ action }} Event - AI Appointment System{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-2xl mx-auto">
+        <!-- Page Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ action }} Event</h1>
+            <p class="text-gray-600">{% if action == 'Create' %}Add a new event to your calendar{% else %}Update your event details{% endif %}</p>
+        </div>
+
+        <!-- Event Form -->
+        <div class="card p-6">
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+                
+                <!-- Title -->
+                <div>
+                    <label for="{{ form.title.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        Event Title *
+                    </label>
+                    {{ form.title }}
+                    {% if form.title.errors %}
+                        <div class="mt-1 text-red-600 text-sm">
+                            {% for error in form.title.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Description -->
+                <div>
+                    <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        Description
+                    </label>
+                    {{ form.description }}
+                    {% if form.description.errors %}
+                        <div class="mt-1 text-red-600 text-sm">
+                            {% for error in form.description.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- All Day Toggle -->
+                <div class="flex items-center">
+                    {{ form.is_all_day }}
+                    <label for="{{ form.is_all_day.id_for_label }}" class="ml-2 text-sm font-medium text-gray-700">
+                        All Day Event
+                    </label>
+                </div>
+
+                <!-- Date and Time Fields -->
+                <div id="datetime-fields" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Start Time -->
+                    <div>
+                        <label for="{{ form.start_time.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Start Time *
+                        </label>
+                        {{ form.start_time }}
+                        {% if form.start_time.errors %}
+                            <div class="mt-1 text-red-600 text-sm">
+                                {% for error in form.start_time.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- End Time -->
+                    <div>
+                        <label for="{{ form.end_time.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            End Time *
+                        </label>
+                        {{ form.end_time }}
+                        {% if form.end_time.errors %}
+                            <div class="mt-1 text-red-600 text-sm">
+                                {% for error in form.end_time.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Location -->
+                <div>
+                    <label for="{{ form.location.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        Location
+                    </label>
+                    {{ form.location }}
+                    {% if form.location.errors %}
+                        <div class="mt-1 text-red-600 text-sm">
+                            {% for error in form.location.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Form Errors -->
+                {% if form.non_field_errors %}
+                    <div class="bg-red-50 border border-red-200 rounded-md p-4">
+                        <div class="text-red-600 text-sm">
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+
+                <!-- Action Buttons -->
+                <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+                    <a href="{% url 'appointment:calendar' %}" 
+                       class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors">
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn-primary px-6 py-2 text-white font-medium rounded-md">
+                        {% if action == 'Create' %}Create Event{% else %}Update Event{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const allDayCheckbox = document.getElementById('{{ form.is_all_day.id_for_label }}');
+    const datetimeFields = document.getElementById('datetime-fields');
+    const startTimeField = document.getElementById('{{ form.start_time.id_for_label }}');
+    const endTimeField = document.getElementById('{{ form.end_time.id_for_label }}');
+
+    // Handle all-day event toggle
+    allDayCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            // For all-day events, change input types to date
+            startTimeField.type = 'date';
+            endTimeField.type = 'date';
+            
+            // Set default dates if not already set
+            if (!startTimeField.value) {
+                const today = new Date().toISOString().split('T')[0];
+                startTimeField.value = today;
+            }
+            if (!endTimeField.value) {
+                const today = new Date().toISOString().split('T')[0];
+                endTimeField.value = today;
+            }
+        } else {
+            // For timed events, change input types to datetime-local
+            startTimeField.type = 'datetime-local';
+            endTimeField.type = 'datetime-local';
+            
+            // Set default times if not already set
+            if (!startTimeField.value) {
+                const now = new Date();
+                const minutes = Math.floor(now.getMinutes() / 30) * 30;
+                now.setMinutes(minutes, 0, 0);
+                startTimeField.value = now.toISOString().slice(0, 16);
+            }
+            if (!endTimeField.value) {
+                const startTime = new Date(startTimeField.value);
+                const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // Add 1 hour
+                endTimeField.value = endTime.toISOString().slice(0, 16);
+            }
+        }
+    });
+
+    // Auto-set end time when start time changes
+    startTimeField.addEventListener('change', function() {
+        if (!endTimeField.value && !allDayCheckbox.checked) {
+            const startTime = new Date(this.value);
+            const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // Add 1 hour
+            endTimeField.value = endTime.toISOString().slice(0, 16);
+        }
+    });
+
+    // Initialize form state
+    if (allDayCheckbox.checked) {
+        allDayCheckbox.dispatchEvent(new Event('change'));
+    }
+});
+</script>
+{% endblock %} 

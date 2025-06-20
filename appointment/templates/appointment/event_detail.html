@@ -1,0 +1,140 @@
+{% extends 'shared/skeleton.html' %}
+{% load static %}
+
+{% block title %}{{ event.title }} - AI Appointment System{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-2xl mx-auto">
+        <!-- Page Header -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ event.title }}</h1>
+                    <p class="text-gray-600">{{ event.start_time|date:"l, F j, Y" }}</p>
+                </div>
+                <div class="flex space-x-2">
+                    <a href="{% url 'appointment:event_update' event.id %}" 
+                       class="btn-primary px-4 py-2 text-white font-medium rounded-md">
+                        <i class="fas fa-edit mr-2"></i>Edit
+                    </a>
+                    <a href="{% url 'appointment:event_delete' event.id %}" 
+                       class="px-4 py-2 border border-red-300 text-red-700 rounded-md hover:bg-red-50 transition-colors">
+                        <i class="fas fa-trash mr-2"></i>Delete
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Event Details -->
+        <div class="card p-6 mb-6">
+            <div class="space-y-6">
+                <!-- Time Information -->
+                <div class="flex items-start space-x-4">
+                    <div class="flex-shrink-0">
+                        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-clock text-blue-600"></i>
+                        </div>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-lg font-medium text-gray-900 mb-1">Time</h3>
+                        <div class="text-gray-600">
+                            {% if event.is_all_day %}
+                                <p>All Day Event</p>
+                                <p class="text-sm">{{ event.start_time|date:"F j, Y" }}</p>
+                            {% else %}
+                                <p>{{ event.start_time|date:"l, F j, Y" }}</p>
+                                <p class="text-sm">{{ event.start_time|time:"g:i A" }} - {{ event.end_time|time:"g:i A" }}</p>
+                                <p class="text-sm text-gray-500">
+                                    Duration: 
+                                    {% if event.end_time|date:"Y-m-d" == event.start_time|date:"Y-m-d" %}
+                                        {{ event.end_time|time:"H:i"|add:"-"|add:event.start_time|time:"H:i" }}
+                                    {% else %}
+                                        Multiple days
+                                    {% endif %}
+                                </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Location -->
+                {% if event.location %}
+                <div class="flex items-start space-x-4">
+                    <div class="flex-shrink-0">
+                        <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-map-marker-alt text-green-600"></i>
+                        </div>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-lg font-medium text-gray-900 mb-1">Location</h3>
+                        <p class="text-gray-600">{{ event.location }}</p>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Description -->
+                {% if event.description %}
+                <div class="flex items-start space-x-4">
+                    <div class="flex-shrink-0">
+                        <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-align-left text-purple-600"></i>
+                        </div>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-lg font-medium text-gray-900 mb-1">Description</h3>
+                        <div class="text-gray-600 whitespace-pre-wrap">{{ event.description }}</div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Google Calendar Integration -->
+                {% if event.google_event_id %}
+                <div class="flex items-start space-x-4">
+                    <div class="flex-shrink-0">
+                        <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                            <i class="fab fa-google text-red-600"></i>
+                        </div>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-lg font-medium text-gray-900 mb-1">Google Calendar</h3>
+                        <p class="text-gray-600">This event is synced with Google Calendar</p>
+                        <p class="text-sm text-gray-500">Event ID: {{ event.google_event_id }}</p>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Event Metadata -->
+                <div class="border-t border-gray-200 pt-6">
+                    <div class="grid grid-cols-2 gap-4 text-sm text-gray-500">
+                        <div>
+                            <span class="font-medium">Created:</span>
+                            {{ event.created_at|date:"M j, Y g:i A" }}
+                        </div>
+                        <div>
+                            <span class="font-medium">Last Updated:</span>
+                            {{ event.updated_at|date:"M j, Y g:i A" }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex justify-between">
+            <a href="{% url 'appointment:calendar' %}" 
+               class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Calendar
+            </a>
+            
+            <div class="flex space-x-2">
+                <a href="{% url 'appointment:event_update' event.id %}" 
+                   class="btn-primary px-4 py-2 text-white font-medium rounded-md">
+                    <i class="fas fa-edit mr-2"></i>Edit Event
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
+ 
