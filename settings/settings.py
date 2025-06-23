@@ -16,6 +16,7 @@ from django.templatetags.static import static
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
 from dotenv import load_dotenv
+import json
 
 load_dotenv()
 
@@ -318,9 +319,29 @@ UNFOLD = {
 # def permission_callback(request):
 #     return request.user.has_perm("sample_app.change_model")
 
+def get_google_client_info():
+    client_id = os.environ.get('GOOGLE_CLIENT_ID')
+    client_secret = os.environ.get('GOOGLE_CLIENT_SECRET')
+    if client_id and client_secret:
+        return client_id, client_secret
+
+    # Fallback: load from credentials.json
+    credentials_path = os.path.join(os.path.dirname(__file__), '..', 'credentials.json')
+    credentials_path = os.path.abspath(credentials_path)
+    if os.path.exists(credentials_path):
+        with open(credentials_path, 'r') as f:
+            creds = json.load(f)
+            if 'installed' in creds:
+                info = creds['installed']
+            elif 'web' in creds:
+                info = creds['web']
+            else:
+                raise Exception("Invalid credentials.json format")
+            return info['client_id'], info['client_secret']
+    raise Exception("Google client_id and client_secret not found in environment or credentials.json")
+
 # Google Client ID and Secret
-CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
-CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET')
+CLIENT_ID, CLIENT_SECRET = get_google_client_info()
 
 # Google Calendar API
 GOOGLE_CALENDAR_API_URL = 'https://www.googleapis.com/calendar/v3/calendars/primary/events'

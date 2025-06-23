@@ -30,4 +30,12 @@ urlpatterns = [
     # API endpoints
     path('api/events/', views.api_events, name='api_events'),
     path('api/availability/', views.check_availability, name='check_availability'),
+    
+    # Client management
+    path('clients/', views.client_list, name='client_list'),
+    path('client/create/', views.client_create, name='client_create'),
+    path('client/<int:client_id>/', views.client_detail, name='client_detail'),
+    path('client/<int:client_id>/update/', views.client_update, name='client_update'),
+    path('client/<int:client_id>/delete/', views.client_delete, name='client_delete'),
+    path('client/<int:client_id>/restore/', views.client_restore, name='client_restore'),
 ] 

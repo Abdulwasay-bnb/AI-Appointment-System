@@ -1,0 +1,44 @@
+{% extends 'shared/skeleton.html' %}
+{% block title %}Client Profile - AI Appointment System{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+    <div class="mb-8 flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ client.first_name }} {{ client.last_name }}</h1>
+            <p class="text-gray-600">{{ client.email }}</p>
+            <p class="text-gray-600">{{ client.phone }}</p>
+            <p class="text-gray-600">{{ client.address }}</p>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if client.is_active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                {% if client.is_active %}Active{% else %}Inactive{% endif %}
+            </span>
+        </div>
+        <div class="flex gap-2">
+            <a href="{% url 'appointment:client_update' client.id %}" class="btn-secondary px-4 py-2 rounded-md">Edit</a>
+            {% if client.is_active %}
+                <a href="{% url 'appointment:client_delete' client.id %}" class="btn-danger px-4 py-2 rounded-md">Delete</a>
+            {% else %}
+                <a href="{% url 'appointment:client_restore' client.id %}" class="btn-primary px-4 py-2 rounded-md">Restore</a>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card p-6 mb-6">
+        <h2 class="text-xl font-semibold mb-4">Audit Trail</h2>
+        {% if audit_trails %}
+            <ul class="divide-y divide-gray-200">
+                {% for audit in audit_trails %}
+                    <li class="py-2">
+                        <span class="font-medium">{{ audit.get_action_display }}</span> by {{ audit.changed_by|default:'System' }} on {{ audit.timestamp|date:'M j, Y H:i' }}<br>
+                        <span class="text-xs text-gray-500">{{ audit.change_details }}</span>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="text-gray-500">No audit history.</p>
+        {% endif %}
+    </div>
+    <div class="card p-6">
+        <h2 class="text-xl font-semibold mb-4">Appointment & Communication History</h2>
+        <p class="text-gray-500">(Coming soon)</p>
+    </div>
+</div>
+{% endblock %} 

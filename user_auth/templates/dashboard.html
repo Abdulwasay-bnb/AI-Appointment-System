@@ -1,131 +1,84 @@
 {% extends "shared/skeleton.html" %}
 {% block content %}
-<div class="min-h-screen neural-pattern bg-black/90">
+<main>
     <!-- Dashboard Header -->
-    <div class="bg-gradient-to-r from-blue-900/80 via-purple-900/80 to-black/80 border-b border-blue-700/40 shadow-lg backdrop-blur-md slide-in">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div class="flex items-center justify-between">
+    <section class="bg-white py-10 border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 text-center md:text-left">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-4">
                 <div>
-                    <h1 class="text-3xl md:text-4xl font-orbitron font-black text-white animate-title mb-1">Welcome back, {{ user.username }}!</h1>
-                    <p class="text-lg text-blue-200/80 animate-fade-in">Here's what's happening with your appointments</p>
+                    <h1 class="text-4xl font-bold text-gray-900 mb-2">Welcome back, {{ user.username }}!</h1>
+                    <p class="text-lg text-gray-600">Here's what's happening with your appointments</p>
                 </div>
-                <button class="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 text-white font-semibold flex items-center space-x-2 glow-effect animate-slide-in-right">
-                    <i class="fas fa-plus animate-bounce"></i>
-                    <span>New Appointment</span>
-                </button>
+                <a href="{% url 'appointment:event_create' %}" class="btn-primary text-white px-8 py-4 rounded-lg font-semibold text-lg flex items-center gap-2">
+                    <i class="fas fa-calendar-plus"></i>
+                    New Appointment
+                </a>
             </div>
         </div>
-    </div>
+    </section>
 
-    <!-- Dashboard Content -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <!-- Stats Overview -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
-            <div class="holographic p-6 rounded-xl border border-blue-700/40 animate-stat-card hover:scale-105 transition-transform duration-300 shadow-lg">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-blue-300 text-sm font-inter">Upcoming</p>
-                        <h3 class="text-3xl font-bold text-white mt-1 font-orbitron animate-count-up" data-target="3">3</h3>
-                    </div>
-                    <div class="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-calendar text-blue-400 text-2xl"></i>
-                    </div>
+    <!-- Stats Overview -->
+    <section class="bg-gray-50 py-10">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-8">
+                <div class="card p-6 text-center">
+                    <div class="text-blue-600 text-4xl mb-2"><i class="fas fa-calendar"></i></div>
+                    <div class="text-2xl font-bold text-gray-900">{{ upcoming_count }}</div>
+                    <div class="text-gray-600">Upcoming</div>
                 </div>
-            </div>
-            <div class="holographic p-6 rounded-xl border border-green-700/40 animate-stat-card hover:scale-105 transition-transform duration-300 shadow-lg" style="animation-delay: 0.1s;">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-green-300 text-sm font-inter">Completed</p>
-                        <h3 class="text-3xl font-bold text-white mt-1 font-orbitron animate-count-up" data-target="12">12</h3>
-                    </div>
-                    <div class="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-check-circle text-green-400 text-2xl"></i>
-                    </div>
+                <div class="card p-6 text-center">
+                    <div class="text-green-600 text-4xl mb-2"><i class="fas fa-check-circle"></i></div>
+                    <div class="text-2xl font-bold text-gray-900">{{ completed_count }}</div>
+                    <div class="text-gray-600">Completed</div>
                 </div>
-            </div>
-            <div class="holographic p-6 rounded-xl border border-red-700/40 animate-stat-card hover:scale-105 transition-transform duration-300 shadow-lg" style="animation-delay: 0.2s;">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-red-300 text-sm font-inter">Cancelled</p>
-                        <h3 class="text-3xl font-bold text-white mt-1 font-orbitron animate-count-up" data-target="2">2</h3>
-                    </div>
-                    <div class="w-12 h-12 bg-red-500/20 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-times-circle text-red-400 text-2xl"></i>
-                    </div>
+                <div class="card p-6 text-center">
+                    <div class="text-red-600 text-4xl mb-2"><i class="fas fa-times-circle"></i></div>
+                    <div class="text-2xl font-bold text-gray-900">{{ cancelled_count }}</div>
+                    <div class="text-gray-600">Cancelled</div>
                 </div>
-            </div>
-            <div class="holographic p-6 rounded-xl border border-purple-700/40 animate-stat-card hover:scale-105 transition-transform duration-300 shadow-lg" style="animation-delay: 0.3s;">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-purple-300 text-sm font-inter">Total Hours</p>
-                        <h3 class="text-3xl font-bold text-white mt-1 font-orbitron animate-count-up" data-target="24">24</h3>
-                    </div>
-                    <div class="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-clock text-purple-400 text-2xl"></i>
-                    </div>
+                <div class="card p-6 text-center">
+                    <div class="text-purple-600 text-4xl mb-2"><i class="fas fa-clock"></i></div>
+                    <div class="text-2xl font-bold text-gray-900">{{ total_hours }}</div>
+                    <div class="text-gray-600">Total Hours</div>
+                </div>
+                <div class="card p-6 text-center">
+                    <div class="text-yellow-600 text-4xl mb-2"><i class="fas fa-users"></i></div>
+                    <div class="text-2xl font-bold text-gray-900">{{ client_count }}</div>
+                    <div class="text-gray-600">Clients</div>
                 </div>
             </div>
         </div>
+    </section>
 
-        <!-- Main Content Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+    <!-- Main Content Grid -->
+    <section class="bg-white py-10">
+        <div class="max-w-7xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-3 gap-10">
             <!-- Upcoming Appointments -->
             <div class="lg:col-span-2 space-y-8">
-                <div class="holographic bg-black/70 rounded-2xl border border-blue-700/40 shadow-xl animate-slide-in-up">
-                    <div class="p-6 border-b border-blue-700/30">
-                        <h2 class="text-2xl font-bold text-blue-200 font-orbitron">Upcoming Appointments</h2>
-                    </div>
-                    <div class="p-6">
-                        <div class="space-y-4">
-                            <!-- Appointment Item -->
-                            <div class="bg-gradient-to-r from-blue-900/60 to-blue-700/40 rounded-lg p-4 hover:scale-105 transition-transform duration-300 shadow-md flex items-center justify-between animate-fade-in">
-                                <div class="flex items-center space-x-4">
-                                    <div class="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                                        <i class="fas fa-user-md text-blue-400"></i>
+                <div class="card p-6">
+                    <h2 class="text-2xl font-bold text-blue-600 mb-6">Upcoming Appointments</h2>
+                    <div class="space-y-4">
+                        {% if upcoming_appointments %}
+                            {% for event in upcoming_appointments %}
+                                <div class="flex items-center justify-between bg-gray-50 rounded-lg p-4 shadow-sm">
+                                    <div class="flex items-center gap-4">
+                                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                                            <i class="fas fa-calendar text-blue-600 text-2xl"></i>
+                                        </div>
+                                        <div>
+                                            <div class="text-lg font-semibold text-gray-900">{{ event.title }}</div>
+                                            <div class="text-gray-500 text-sm">{{ event.location|default:'No location' }}</div>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h3 class="text-white font-medium font-inter">Dr. Sarah Johnson</h3>
-                                        <p class="text-blue-200 text-sm">General Checkup</p>
-                                    </div>
-                                </div>
-                                <div class="text-right">
-                                    <p class="text-white font-medium font-orbitron">Tomorrow</p>
-                                    <p class="text-blue-200 text-sm">10:00 AM</p>
-                                </div>
-                            </div>
-                            <!-- Appointment Item -->
-                            <div class="bg-gradient-to-r from-purple-900/60 to-purple-700/40 rounded-lg p-4 hover:scale-105 transition-transform duration-300 shadow-md flex items-center justify-between animate-fade-in" style="animation-delay: 0.1s;">
-                                <div class="flex items-center space-x-4">
-                                    <div class="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                                        <i class="fas fa-tooth text-purple-400"></i>
-                                    </div>
-                                    <div>
-                                        <h3 class="text-white font-medium font-inter">Dr. Michael Chen</h3>
-                                        <p class="text-purple-200 text-sm">Dental Cleaning</p>
+                                    <div class="text-right">
+                                        <div class="text-gray-900 font-medium">{{ event.start_time|date:"M j, Y" }}</div>
+                                        <div class="text-blue-600 text-sm">{{ event.start_time|time:"g:i A" }}</div>
                                     </div>
                                 </div>
-                                <div class="text-right">
-                                    <p class="text-white font-medium font-orbitron">Mar 15</p>
-                                    <p class="text-purple-200 text-sm">2:30 PM</p>
-                                </div>
-                            </div>
-                            <!-- Appointment Item -->
-                            <div class="bg-gradient-to-r from-green-900/60 to-green-700/40 rounded-lg p-4 hover:scale-105 transition-transform duration-300 shadow-md flex items-center justify-between animate-fade-in" style="animation-delay: 0.2s;">
-                                <div class="flex items-center space-x-4">
-                                    <div class="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center">
-                                        <i class="fas fa-eye text-green-400"></i>
-                                    </div>
-                                    <div>
-                                        <h3 class="text-white font-medium font-inter">Dr. Emily Brown</h3>
-                                        <p class="text-green-200 text-sm">Eye Examination</p>
-                                    </div>
-                                </div>
-                                <div class="text-right">
-                                    <p class="text-white font-medium font-orbitron">Mar 20</p>
-                                    <p class="text-green-200 text-sm">11:15 AM</p>
-                                </div>
-                            </div>
-                        </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center text-blue-600">No upcoming appointments.</div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -133,50 +86,46 @@
             <!-- Right Sidebar -->
             <div class="space-y-10">
                 <!-- Quick Actions -->
-                <div class="holographic bg-black/70 rounded-2xl border border-blue-700/40 shadow-xl animate-slide-in-up">
-                    <div class="p-6 border-b border-blue-700/30">
-                        <h2 class="text-xl font-bold text-blue-200 font-orbitron">Quick Actions</h2>
-                    </div>
-                    <div class="p-6">
-                        <div class="grid grid-cols-2 gap-4">
-                            <button class="p-4 bg-gradient-to-r from-blue-900/60 to-blue-700/40 rounded-lg hover:scale-105 transition-transform duration-300 text-left shadow-md animate-fade-in">
-                                <i class="fas fa-calendar-plus text-blue-400 mb-2"></i>
-                                <p class="text-white font-medium font-inter">Book New</p>
-                            </button>
-                            <button class="p-4 bg-gradient-to-r from-purple-900/60 to-purple-700/40 rounded-lg hover:scale-105 transition-transform duration-300 text-left shadow-md animate-fade-in" style="animation-delay: 0.1s;">
-                                <i class="fas fa-history text-purple-400 mb-2"></i>
-                                <p class="text-white font-medium font-inter">View History</p>
-                            </button>
-                            <button class="p-4 bg-gradient-to-r from-yellow-900/60 to-yellow-700/40 rounded-lg hover:scale-105 transition-transform duration-300 text-left shadow-md animate-fade-in" style="animation-delay: 0.2s;">
-                                <i class="fas fa-bell text-yellow-400 mb-2"></i>
-                                <p class="text-white font-medium font-inter">Notifications</p>
-                            </button>
-                            <button class="p-4 bg-gradient-to-r from-gray-900/60 to-gray-700/40 rounded-lg hover:scale-105 transition-transform duration-300 text-left shadow-md animate-fade-in" style="animation-delay: 0.3s;">
-                                <i class="fas fa-cog text-gray-400 mb-2"></i>
-                                <p class="text-white font-medium font-inter">Settings</p>
-                            </button>
-                        </div>
+                <div class="card p-6">
+                    <h2 class="text-xl font-bold text-blue-600 mb-4">Quick Actions</h2>
+                    <div class="grid grid-cols-1 gap-4">
+                        <a href="{% url 'appointment:client_create' %}" class="flex items-center gap-3 p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition">
+                            <i class="fas fa-user-plus text-blue-600"></i>
+                            <span class="text-gray-900 font-medium">Add Client</span>
+                        </a>
+                        <a href="{% url 'appointment:client_list' %}" class="flex items-center gap-3 p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition">
+                            <i class="fas fa-users text-purple-600"></i>
+                            <span class="text-gray-900 font-medium">View Clients</span>
+                        </a>
+                        <a href="{% url 'appointment:event_create' %}" class="flex items-center gap-3 p-4 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition">
+                            <i class="fas fa-calendar-plus text-yellow-600"></i>
+                            <span class="text-gray-900 font-medium">Book New</span>
+                        </a>
+                        <a href="{% url 'appointment:event_list' %}" class="flex items-center gap-3 p-4 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
+                            <i class="fas fa-history text-gray-600"></i>
+                            <span class="text-gray-900 font-medium">View History</span>
+                        </a>
                     </div>
                 </div>
 
                 <!-- AI Assistant -->
-                <div class="bg-gradient-to-br from-blue-600 via-purple-600 to-blue-400 rounded-2xl p-8 shadow-2xl neon-glow animate-slide-in-up">
-                    <div class="flex items-center space-x-4 mb-4">
-                        <div class="w-14 h-14 bg-white/10 rounded-lg flex items-center justify-center animate-pulse">
-                            <i class="fas fa-robot text-white text-2xl"></i>
+                <div class="card p-6 bg-gradient-to-br from-blue-50 via-purple-50 to-blue-100">
+                    <div class="flex items-center gap-4 mb-4">
+                        <div class="w-14 h-14 bg-white/70 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-robot text-blue-600 text-2xl"></i>
                         </div>
                         <div>
-                            <h3 class="text-white font-bold font-orbitron text-xl animate-glow-text">AI Assistant</h3>
-                            <p class="text-white/80 text-sm font-inter">Need help?</p>
+                            <h3 class="text-blue-900 font-bold text-xl">AI Assistant</h3>
+                            <p class="text-gray-600 text-sm">Need help?</p>
                         </div>
                     </div>
-                    <p class="text-white/90 mb-4 font-inter">I can help you schedule appointments, answer questions, or provide recommendations.</p>
-                    <button class="w-full py-3 bg-white/10 hover:bg-white/20 rounded-lg text-white font-semibold font-orbitron transition-colors duration-300 animate-fade-in">
+                    <p class="text-gray-700 mb-4">I can help you schedule appointments, answer questions, or provide recommendations.</p>
+                    <a href="/llm/chatbot/" class="btn-primary w-full py-3 text-white rounded-lg font-semibold text-center block">
                         Ask AI Assistant
-                    </button>
+                    </a>
                 </div>
             </div>
         </div>
-    </div>
-</div>
+    </section>
+</main>
 {% endblock %}

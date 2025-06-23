@@ -44,3 +44,42 @@ class AvailableTimeSlot(models.Model):
     
     def __str__(self):
         return f"{self.user.username} - {self.get_day_of_week_display()} {self.start_time}-{self.end_time}"
+
+class Client(models.Model):
+    """Model to store client information for each user (soft delete supported)"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='clients')
+    first_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100)
+    email = models.EmailField(max_length=254)
+    phone = models.CharField(max_length=20, blank=True, null=True)
+    address = models.TextField(blank=True, null=True)
+    notes = models.TextField(blank=True, null=True)
+    is_active = models.BooleanField(default=True)  # Soft delete
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ['user', 'email']
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.first_name} {self.last_name} ({self.email})"
+
+class ClientAuditTrail(models.Model):
+    """Model to log changes to Client objects for audit purposes"""
+    ACTION_CHOICES = [
+        ('created', 'Created'),
+        ('updated', 'Updated'),
+        ('deleted', 'Deleted'),
+    ]
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='audit_trails')
+    action = models.CharField(max_length=10, choices=ACTION_CHOICES)
+    changed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    timestamp = models.DateTimeField(default=timezone.now)
+    change_details = models.TextField(blank=True, null=True)  # JSON or text description
+
+    class Meta:
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        return f"{self.client} - {self.action} at {self.timestamp}"

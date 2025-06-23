@@ -4,7 +4,7 @@ from django.shortcuts import render
 from django.http import FileResponse, HttpResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
-from chatterbox.tts import ChatterboxTTS
+# from chatterbox.tts import ChatterboxTTS
 from dotenv import load_dotenv
 from .models import UserAudio
 from django.contrib.auth.decorators import login_required
@@ -17,7 +17,7 @@ GENERATED_FOLDER = os.path.join(settings.MEDIA_ROOT, 'tts_generated')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(GENERATED_FOLDER, exist_ok=True)
 
-model = ChatterboxTTS.from_pretrained(device="cpu")
+# model = ChatterboxTTS.from_pretrained(device="cpu")
 
 @login_required(login_url='login')
 def tts_index(request):

@@ -10,13 +10,16 @@ from django.conf import settings
 import json
 import datetime
 from datetime import timedelta
-from .models import CalendarEvent, AvailableTimeSlot
+from .models import CalendarEvent, AvailableTimeSlot, Client, ClientAuditTrail
 from .google_calendar_service import GoogleCalendarService
-from .forms import CalendarEventForm, AvailableTimeSlotForm, UserCalendarSettingsForm
+from .forms import CalendarEventForm, AvailableTimeSlotForm, UserCalendarSettingsForm, ClientForm
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.oauth2.credentials import Credentials
 from user_auth.models import UserProfile
 import os
+import pytz
+from django.db.models import Q
+import csv
 
 @login_required
 def calendar_settings(request):
@@ -147,7 +150,9 @@ def google_calendar_callback(request):
         print(f"DEBUG: UserProfile {'created' if created else 'retrieved'} for user: {request.user.username}")
         
         user_profile.google_access_token = credentials.token
-        user_profile.google_refresh_token = credentials.refresh_token
+        # Only update refresh_token if a new one is provided
+        if credentials.refresh_token:
+            user_profile.google_refresh_token = credentials.refresh_token
         user_profile.google_token_expiry = timezone.now() + timedelta(seconds=credentials.expiry.timestamp() - timezone.now().timestamp())
         user_profile.google_calendar_connected = True
         
@@ -247,31 +252,43 @@ def event_create(request):
         if form.is_valid():
             event = form.save(commit=False)
             event.user = request.user
+            # Timezone fix: treat naive datetimes as user's local time, then convert to UTC
+            user_profile = None
+            try:
+                user_profile = UserProfile.objects.get(user=request.user)
+                user_tz = pytz.timezone(user_profile.timezone or 'UTC')
+            except Exception:
+                user_tz = pytz.UTC
+            if event.start_time and timezone.is_naive(event.start_time):
+                local_dt = user_tz.localize(event.start_time)
+                event.start_time = local_dt.astimezone(pytz.UTC)
+            if event.end_time and timezone.is_naive(event.end_time):
+                local_dt = user_tz.localize(event.end_time)
+                event.end_time = local_dt.astimezone(pytz.UTC)
             
             # If Google Calendar is connected, create event there too
             try:
-                user_profile = UserProfile.objects.get(user=request.user)
                 if user_profile.is_google_calendar_connected and user_profile.google_calendar_sync_enabled:
                     google_service = GoogleCalendarService(request.user)
-                    
+                    # Convert event times to user's timezone for Google Calendar
+                    gcal_start = event.start_time.astimezone(user_tz)
+                    gcal_end = event.end_time.astimezone(user_tz)
                     event_data = {
                         'summary': event.title,
                         'description': event.description or '',
                         'location': event.location or '',
                         'start': {
-                            'dateTime': event.start_time.isoformat(),
+                            'dateTime': gcal_start.isoformat(),
                             'timeZone': user_profile.timezone,
                         },
                         'end': {
-                            'dateTime': event.end_time.isoformat(),
+                            'dateTime': gcal_end.isoformat(),
                             'timeZone': user_profile.timezone,
                         },
                     }
-                    
                     if event.is_all_day:
                         event_data['start'] = {'date': event.start_time.date().isoformat()}
                         event_data['end'] = {'date': event.end_time.date().isoformat()}
-                    
                     google_event = google_service.create_event(event_data)
                     if google_event:
                         event.google_event_id = google_event['id']
@@ -300,38 +317,51 @@ def event_update(request, event_id):
     if request.method == 'POST':
         form = CalendarEventForm(request.POST, instance=event)
         if form.is_valid():
-            event = form.save()
+            event = form.save(commit=False)
+            # Timezone fix: treat naive datetimes as user's local time, then convert to UTC
+            user_profile = None
+            try:
+                user_profile = UserProfile.objects.get(user=request.user)
+                user_tz = pytz.timezone(user_profile.timezone or 'UTC')
+            except Exception:
+                user_tz = pytz.UTC
+            if event.start_time and timezone.is_naive(event.start_time):
+                local_dt = user_tz.localize(event.start_time)
+                event.start_time = local_dt.astimezone(pytz.UTC)
+            if event.end_time and timezone.is_naive(event.end_time):
+                local_dt = user_tz.localize(event.end_time)
+                event.end_time = local_dt.astimezone(pytz.UTC)
             
             # Update Google Calendar event if connected
             if event.google_event_id:
                 try:
-                    user_profile = UserProfile.objects.get(user=request.user)
                     if user_profile.is_google_calendar_connected and user_profile.google_calendar_sync_enabled:
                         google_service = GoogleCalendarService(request.user)
-                        
+                        # Convert event times to user's timezone for Google Calendar
+                        gcal_start = event.start_time.astimezone(user_tz)
+                        gcal_end = event.end_time.astimezone(user_tz)
                         event_data = {
                             'summary': event.title,
                             'description': event.description or '',
                             'location': event.location or '',
                             'start': {
-                                'dateTime': event.start_time.isoformat(),
+                                'dateTime': gcal_start.isoformat(),
                                 'timeZone': user_profile.timezone,
                             },
                             'end': {
-                                'dateTime': event.end_time.isoformat(),
+                                'dateTime': gcal_end.isoformat(),
                                 'timeZone': user_profile.timezone,
                             },
                         }
-                        
                         if event.is_all_day:
                             event_data['start'] = {'date': event.start_time.date().isoformat()}
                             event_data['end'] = {'date': event.end_time.date().isoformat()}
-                        
                         google_service.update_event(event.google_event_id, event_data)
                 
                 except UserProfile.DoesNotExist:
                     pass
             
+            event.save()
             messages.success(request, 'Event updated successfully!')
             return redirect('appointment:calendar')
     else:
@@ -386,7 +416,39 @@ def available_slots(request):
         form = AvailableTimeSlotForm()
     
     slots = AvailableTimeSlot.objects.filter(user=request.user).order_by('day_of_week', 'start_time')
-    
+    # Add duration_str and is_booked to each slot
+    for slot in slots:
+        start = slot.start_time
+        end = slot.end_time
+        # Calculate duration in minutes
+        duration_minutes = (end.hour * 60 + end.minute) - (start.hour * 60 + start.minute)
+        hours = duration_minutes // 60
+        minutes = duration_minutes % 60
+        if hours and minutes:
+            slot.duration_str = f"{hours}h {minutes}m"
+        elif hours:
+            slot.duration_str = f"{hours}h"
+        else:
+            slot.duration_str = f"{minutes}m"
+        # Check if slot is booked (any event overlaps this slot on the same day of week)
+        # Find next date for this day_of_week
+        today = datetime.date.today()
+        days_ahead = (slot.day_of_week - today.weekday()) % 7
+        slot_date = today + datetime.timedelta(days=days_ahead)
+        slot_start_dt = datetime.datetime.combine(slot_date, slot.start_time)
+        slot_end_dt = datetime.datetime.combine(slot_date, slot.end_time)
+        # Check for any event that overlaps this slot
+        slot.is_booked = CalendarEvent.objects.filter(
+            user=request.user,
+            start_time__lt=slot_end_dt,
+            end_time__gt=slot_start_dt
+        ).exists()
+        # Attach booked events for modal
+        slot.booked_events = list(CalendarEvent.objects.filter(
+            user=request.user,
+            start_time__lt=slot_end_dt,
+            end_time__gt=slot_start_dt
+        ).values('title', 'start_time', 'end_time'))
     context = {
         'form': form,
         'slots': slots,
@@ -589,3 +651,124 @@ def test_google_credentials(request):
             'error': str(e),
             'type': type(e).__name__
         })
+
+@login_required
+def client_list(request):
+    """Paginated, searchable, filterable list of clients for the current user, with bulk actions and CSV export."""
+    query = request.GET.get('q', '')
+    show_inactive = request.GET.get('show_inactive', '0') == '1'
+    export = request.GET.get('export', '')
+    clients = Client.objects.filter(user=request.user)
+    if not show_inactive:
+        clients = clients.filter(is_active=True)
+    if query:
+        clients = clients.filter(
+            Q(first_name__icontains=query) |
+            Q(last_name__icontains=query) |
+            Q(email__icontains=query) |
+            Q(phone__icontains=query)
+        )
+    clients = clients.order_by('-created_at')
+
+    # CSV export
+    if export == 'csv':
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="clients.csv"'
+        writer = csv.writer(response)
+        writer.writerow(['First Name', 'Last Name', 'Email', 'Phone', 'Address', 'Active', 'Created', 'Updated'])
+        for c in clients:
+            writer.writerow([c.first_name, c.last_name, c.email, c.phone, c.address, c.is_active, c.created_at, c.updated_at])
+        return response
+
+    # Bulk actions
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        selected_ids = request.POST.getlist('selected')
+        if action in ['soft_delete', 'restore'] and selected_ids:
+            for cid in selected_ids:
+                client = Client.objects.filter(user=request.user, pk=cid).first()
+                if client:
+                    if action == 'soft_delete' and client.is_active:
+                        client.is_active = False
+                        client.save()
+                        ClientAuditTrail.objects.create(client=client, action='deleted', changed_by=request.user, change_details='Bulk soft delete')
+                    elif action == 'restore' and not client.is_active:
+                        client.is_active = True
+                        client.save()
+                        ClientAuditTrail.objects.create(client=client, action='created', changed_by=request.user, change_details='Bulk restore')
+            messages.success(request, f'Bulk action "{action}" completed.')
+            return redirect('appointment:client_list')
+
+    paginator = Paginator(clients, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    context = {
+        'clients': page_obj,
+        'page_obj': page_obj,
+        'query': query,
+        'show_inactive': show_inactive,
+    }
+    return render(request, 'appointment/client_list.html', context)
+
+@login_required
+def client_create(request):
+    """Create a new client for the current user."""
+    if request.method == 'POST':
+        form = ClientForm(request.POST, user=request.user)
+        if form.is_valid():
+            client = form.save(commit=False)
+            client.user = request.user
+            client.save()
+            ClientAuditTrail.objects.create(client=client, action='created', changed_by=request.user, change_details='Created client')
+            messages.success(request, 'Client created successfully!')
+            return redirect('appointment:client_list')
+    else:
+        form = ClientForm(user=request.user)
+    return render(request, 'appointment/client_form.html', {'form': form})
+
+@login_required
+def client_update(request, client_id):
+    """Update an existing client (must belong to current user)."""
+    client = get_object_or_404(Client, pk=client_id, user=request.user)
+    if request.method == 'POST':
+        form = ClientForm(request.POST, instance=client, user=request.user)
+        if form.is_valid():
+            form.save()
+            ClientAuditTrail.objects.create(client=client, action='updated', changed_by=request.user, change_details='Updated client')
+            messages.success(request, 'Client updated successfully!')
+            return redirect('appointment:client_list')
+    else:
+        form = ClientForm(instance=client, user=request.user)
+    return render(request, 'appointment/client_form.html', {'form': form, 'client': client})
+
+@login_required
+def client_detail(request, client_id):
+    """View client profile and history (must belong to current user)."""
+    client = get_object_or_404(Client, pk=client_id, user=request.user)
+    audit_trails = client.audit_trails.all()
+    # TODO: Add appointment and communication history
+    return render(request, 'appointment/client_detail.html', {'client': client, 'audit_trails': audit_trails})
+
+@login_required
+def client_delete(request, client_id):
+    """Soft delete a client (must belong to current user)."""
+    client = get_object_or_404(Client, pk=client_id, user=request.user)
+    if request.method == 'POST':
+        client.is_active = False
+        client.save()
+        ClientAuditTrail.objects.create(client=client, action='deleted', changed_by=request.user, change_details='Soft deleted client')
+        messages.success(request, 'Client deleted (soft) successfully!')
+        return redirect('appointment:client_list')
+    return render(request, 'appointment/client_confirm_delete.html', {'client': client})
+
+@login_required
+def client_restore(request, client_id):
+    """Restore a soft-deleted client (must belong to current user)."""
+    client = get_object_or_404(Client, pk=client_id, user=request.user, is_active=False)
+    if request.method == 'POST':
+        client.is_active = True
+        client.save()
+        ClientAuditTrail.objects.create(client=client, action='created', changed_by=request.user, change_details='Restored client')
+        messages.success(request, 'Client restored successfully!')
+        return redirect('appointment:client_list')
+    return render(request, 'appointment/client_confirm_restore.html', {'client': client})

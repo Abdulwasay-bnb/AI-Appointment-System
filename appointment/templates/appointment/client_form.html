@@ -1,0 +1,25 @@
+{% extends 'shared/skeleton.html' %}
+{% block title %}Client Form - AI Appointment System{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-xl">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ client|default_if_none:'New Client' }}</h1>
+        <p class="text-gray-600">{{ client|yesno:'Edit client,Add a new client' }}</p>
+    </div>
+    <div class="card p-6">
+        <form method="post" novalidate>
+            {% csrf_token %}
+            {% for field in form %}
+                <div class="mb-4">
+                    <label class="block text-gray-700 font-medium mb-1">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}<p class="text-xs text-gray-500">{{ field.help_text }}</p>{% endif %}
+                    {% for error in field.errors %}<p class="text-xs text-red-600">{{ error }}</p>{% endfor %}
+                </div>
+            {% endfor %}
+            <button type="submit" class="btn-primary px-6 py-2 text-white font-medium rounded-md">Save</button>
+            <a href="{% url 'appointment:client_list' %}" class="ml-2 btn-secondary px-4 py-2 rounded-md">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %} 

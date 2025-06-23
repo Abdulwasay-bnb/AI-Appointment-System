@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 import uuid
+from django.conf import settings  # Import here to avoid circular import
 
 # Create your models here.
 
@@ -55,13 +56,12 @@ class UserProfile(models.Model):
         """Get Google credentials as a dictionary for the service"""
         if not self.is_google_calendar_connected:
             return None
-            
         return {
             'token': self.google_access_token,
             'refresh_token': self.google_refresh_token,
             'token_uri': "https://oauth2.googleapis.com/token",
-            'client_id': None,  # Will be set from settings
-            'client_secret': None,  # Will be set from settings
+            'client_id': settings.CLIENT_ID,  # Use from settings
+            'client_secret': settings.CLIENT_SECRET,  # Use from settings
             'scopes': ['https://www.googleapis.com/auth/calendar']
         }
     

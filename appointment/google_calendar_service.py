@@ -28,6 +28,21 @@ class GoogleCalendarService:
             if not user_profile.is_google_calendar_connected:
                 return None
             
+            # Check for required fields before creating credentials
+            missing_fields = []
+            if not user_profile.google_refresh_token:
+                missing_fields.append('refresh_token')
+            if not settings.CLIENT_ID:
+                missing_fields.append('client_id')
+            if not settings.CLIENT_SECRET:
+                missing_fields.append('client_secret')
+            if missing_fields:
+                print(f"ERROR: Missing Google credentials fields: {', '.join(missing_fields)} for user {self.user}")
+                raise Exception(
+                    f"Google Calendar integration is not fully configured (missing: {', '.join(missing_fields)}). "
+                    "Please disconnect and reconnect your Google Calendar from settings."
+                )
+            
             # Create credentials from stored tokens
             self.credentials = Credentials(
                 token=user_profile.google_access_token,
@@ -53,7 +68,7 @@ class GoogleCalendarService:
             
         except Exception as e:
             print(f"Error getting credentials: {e}")
-            return None
+            raise
     
     def build_service(self):
         """Build Google Calendar service"""

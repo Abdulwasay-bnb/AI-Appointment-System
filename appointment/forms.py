@@ -1,7 +1,8 @@
 from django import forms
 from django.utils import timezone
-from .models import CalendarEvent, AvailableTimeSlot
+from .models import CalendarEvent, AvailableTimeSlot, Client
 from user_auth.models import UserProfile
+from django.conf import settings
 
 class CalendarEventForm(forms.ModelForm):
     """Form for creating and editing calendar events"""
@@ -215,3 +216,69 @@ class QuickEventForm(forms.Form):
             'class': 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
         })
     ) 
+
+def get_google_credentials_dict(self):
+    if not self.is_google_calendar_connected:
+        return None
+
+    return {
+        'token': self.google_access_token,
+        'refresh_token': self.google_refresh_token,
+        'token_uri': "https://oauth2.googleapis.com/token",
+        'client_id': settings.CLIENT_ID,
+        'client_secret': settings.CLIENT_SECRET,
+        'scopes': ['https://www.googleapis.com/auth/calendar']
+    } 
+
+class ClientForm(forms.ModelForm):
+    """Form for creating and updating Client objects"""
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+
+    class Meta:
+        model = Client
+        fields = ['first_name', 'last_name', 'email', 'phone', 'address', 'notes', 'is_active']
+        widgets = {
+            'first_name': forms.TextInput(attrs={
+                'class': 'w-full px-3 py-2 border border-gray-300 rounded-md',
+                'placeholder': 'First name'
+            }),
+            'last_name': forms.TextInput(attrs={
+                'class': 'w-full px-3 py-2 border border-gray-300 rounded-md',
+                'placeholder': 'Last name'
+            }),
+            'email': forms.EmailInput(attrs={
+                'class': 'w-full px-3 py-2 border border-gray-300 rounded-md',
+                'placeholder': 'Email address'
+            }),
+            'phone': forms.TextInput(attrs={
+                'class': 'w-full px-3 py-2 border border-gray-300 rounded-md',
+                'placeholder': 'Phone number (optional)'
+            }),
+            'address': forms.Textarea(attrs={
+                'class': 'w-full px-3 py-2 border border-gray-300 rounded-md',
+                'rows': 2,
+                'placeholder': 'Address (optional)'
+            }),
+            'notes': forms.Textarea(attrs={
+                'class': 'w-full px-3 py-2 border border-gray-300 rounded-md',
+                'rows': 2,
+                'placeholder': 'Notes (optional)'
+            }),
+            'is_active': forms.CheckboxInput(attrs={
+                'class': 'h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
+            }),
+        }
+
+    def clean_email(self):
+        email = self.cleaned_data['email']
+        user = self.user or (self.instance.user if self.instance.pk else None)
+        if not user:
+            return email
+        qs = Client.objects.filter(user=user, email=email)
+        if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise forms.ValidationError('A client with this email already exists for your account.')
+        return email 

@@ -238,4 +238,28 @@ python manage.py runserver
 
 ## License
 
-This project is licensed under the MIT License. 
+This project is licensed under the MIT License.
+
+## Client Management
+
+- User-scoped client CRUD (Create, Read, Update, Soft Delete, Restore)
+- Audit trail for all client changes
+- Paginated, searchable, filterable client list
+- Bulk soft delete/restore
+- CSV export of client list
+- All endpoints require authentication
+
+### URLs
+- `/appointment/clients/` — List, search, filter, bulk actions, export
+- `/appointment/client/create/` — Create new client
+- `/appointment/client/<id>/` — Client profile/detail
+- `/appointment/client/<id>/update/` — Update client
+- `/appointment/client/<id>/delete/` — Soft delete client
+- `/appointment/client/<id>/restore/` — Restore client
+
+### Templates to add:
+- `client_list.html`
+- `client_form.html`
+- `client_detail.html`
+- `client_confirm_delete.html`
+- `client_confirm_restore.html` 
