@@ -1,0 +1,157 @@
+{% extends 'shared/skeleton.html' %}
+{% block title %}AI Audio Chat Assistant{% endblock %}
+{% block content %}
+<section class="bg-gray-50 min-h-screen flex items-center justify-center">
+    <div class="w-full max-w-xl mx-auto px-4 py-12">
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-900 mb-4">
+                Talk to your <span class="text-blue-600">AI Assistant</span>
+            </h1>
+            <p class="text-lg text-gray-600">
+                Speak to your AI appointment assistant. Your business context and available slots are used for smarter replies.
+            </p>
+        </div>
+        <div class="card p-8">
+            <div id="chat-history" class="mb-6 max-h-64 overflow-y-auto bg-white rounded-lg border border-gray-200 p-4" style="min-height: 120px;"></div>
+            <form id="audio-chat-form" enctype="multipart/form-data" class="flex flex-col gap-4">
+                <div class="flex gap-2 items-center">
+                    <input type="file" id="audio-input" name="audio" accept="audio/*" class="hidden" />
+                    <button type="button" id="record-btn" class="btn-primary px-4 py-2 text-white rounded-lg font-semibold flex items-center gap-2">
+                        <i class="fas fa-microphone"></i> <span id="record-label">Record</span>
+                    </button>
+                    <label for="audio-input" class="btn-primary px-4 py-2 text-white rounded-lg font-semibold cursor-pointer flex items-center gap-2">
+                        <i class="fas fa-upload"></i> Upload
+                    </label>
+                </div>
+                <button type="submit" class="btn-primary w-full py-3 text-white rounded-lg font-semibold text-lg mt-2">
+                    <i class="fas fa-paper-plane mr-2"></i> Send
+                </button>
+            </form>
+            <div id="audio-response" class="mt-6 hidden">
+                <h3 class="text-lg font-semibold mb-2">AI Response (Audio):</h3>
+                <audio id="response-audio" controls class="w-full"></audio>
+            </div>
+        </div>
+    </div>
+</section>
+<script>
+let mediaRecorder, audioChunks = [], audioBlob;
+const recordBtn = document.getElementById('record-btn');
+const recordLabel = document.getElementById('record-label');
+const audioInput = document.getElementById('audio-input');
+const chatHistory = document.getElementById('chat-history');
+const form = document.getElementById('audio-chat-form');
+const audioResponseDiv = document.getElementById('audio-response');
+const responseAudio = document.getElementById('response-audio');
+let isRecording = false;
+
+function appendMessage(role, content) {
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `mb-2 ${role === 'user' ? 'text-right' : 'text-left'}`;
+    msgDiv.innerHTML = `<span class="inline-block px-4 py-2 rounded-lg ${role === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-900'}">${content}</span>`;
+    chatHistory.appendChild(msgDiv);
+    chatHistory.scrollTop = chatHistory.scrollHeight;
+}
+
+recordBtn.addEventListener('click', async function(e) {
+    e.preventDefault();
+    if (!isRecording) {
+        if (!navigator.mediaDevices) {
+            alert('Audio recording not supported.');
+            return;
+        }
+        audioChunks = [];
+        mediaRecorder = await navigator.mediaDevices.getUserMedia({ audio: true })
+            .then(stream => {
+                const mr = new MediaRecorder(stream);
+                mr.ondataavailable = e => audioChunks.push(e.data);
+                mr.onstop = () => {
+                    audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    // Auto-submit after recording
+                    submitAudio(audioBlob);
+                };
+                mr.start();
+                isRecording = true;
+                recordLabel.textContent = 'Stop';
+                recordBtn.classList.add('bg-red-600');
+                recordBtn.classList.remove('bg-blue-600');
+                recordBtn.onclick = function() {
+                    mr.stop();
+                    isRecording = false;
+                    recordLabel.textContent = 'Record';
+                    recordBtn.classList.remove('bg-red-600');
+                    recordBtn.classList.add('bg-blue-600');
+                    recordBtn.onclick = null;
+                };
+                return mr;
+            });
+    }
+});
+
+audioInput.addEventListener('change', function(e) {
+    if (audioInput.files.length > 0) {
+        submitAudio(audioInput.files[0]);
+    }
+});
+
+form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    if (audioBlob) {
+        submitAudio(audioBlob);
+    } else if (audioInput.files.length > 0) {
+        submitAudio(audioInput.files[0]);
+    } else {
+        alert('Please record or upload an audio message.');
+    }
+});
+
+function submitAudio(blobOrFile) {
+    appendMessage('user', '[Audio message sent]');
+    const formData = new FormData();
+    formData.append('audio', blobOrFile);
+    fetch(window.location.pathname, {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.reply) {
+            appendMessage('bot', data.reply);
+            if (data.audio_url) {
+                responseAudio.src = data.audio_url;
+                audioResponseDiv.classList.remove('hidden');
+            }
+        } else {
+            appendMessage('bot', 'Sorry, something went wrong.');
+        }
+        if (data.transcription) {
+            appendMessage('user', '[Transcribed: ' + data.transcription + ']');
+        }
+    })
+    .catch(err => {
+        appendMessage('bot', 'Error: ' + err.message);
+    });
+}
+</script>
+<style>
+.btn-primary {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    transition: all 0.2s ease;
+}
+.btn-primary:hover {
+    background: linear-gradient(135deg, #2563eb, #1e40af);
+    transform: translateY(-1px);
+}
+.card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+}
+.card:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+</style>
+{% endblock %} 

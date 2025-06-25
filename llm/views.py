@@ -13,6 +13,14 @@ from .models import (
     BusinessInfo, BusinessDocument, FAQEntry, AboutUsInfo, ServiceInfo, PricingInfo, PolicyInfo, TrainingMaterial, CallScript
 )
 from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
+from django.conf import settings
+import torchaudio as ta
+from chatterbox.tts import ChatterboxTTS
+from transformers import Speech2TextProcessor, Speech2TextForConditionalGeneration
+import torch
+from appointment.models import AvailableTimeSlot
+from pydub import AudioSegment
 
 # Create your views here.
 
@@ -469,3 +477,148 @@ def business_documents_view(request):
 
 def truncate(val, maxlen):
     return val[:maxlen] if val and len(val) > maxlen else val
+
+# Load models once
+speech2text_model = Speech2TextForConditionalGeneration.from_pretrained("facebook/s2t-small-librispeech-asr")
+speech2text_processor = Speech2TextProcessor.from_pretrained("facebook/s2t-small-librispeech-asr")
+
+def get_business_context(user):
+    try:
+        context_parts = []
+        
+        # Get all FAQ entries for the user
+        faqs = FAQEntry.objects.filter(document__user=user)
+        if faqs.exists():
+            context_parts.append("=== FAQS ===")
+            for faq in faqs:
+                context_parts.append(f"Q: {faq.question} A: {faq.answer}")
+        
+        # Get all About Us info for the user
+        abouts = AboutUsInfo.objects.filter(document__user=user)
+        if abouts.exists():
+            context_parts.append("=== ABOUT US ===")
+            for about in abouts:
+                if about.mission:
+                    context_parts.append(f"Mission: {about.mission}")
+                if about.vision:
+                    context_parts.append(f"Vision: {about.vision}")
+                if about.unique_selling_points:
+                    context_parts.append(f"USP: {about.unique_selling_points}")
+                if about.core_values:
+                    context_parts.append(f"Core Values: {about.core_values}")
+                if about.achievements:
+                    context_parts.append(f"Achievements: {about.achievements}")
+        
+        # Get all services for the user
+        services = ServiceInfo.objects.filter(document__user=user)
+        if services.exists():
+            context_parts.append("=== SERVICES ===")
+            for service in services:
+                service_info = f"Service: {service.service_name}"
+                if service.description:
+                    service_info += f" - {service.description}"
+                if service.target_audience:
+                    service_info += f" (Target: {service.target_audience})"
+                if service.benefits:
+                    service_info += f" (Benefits: {service.benefits})"
+                context_parts.append(service_info)
+        
+        # Get all pricing info for the user
+        pricings = PricingInfo.objects.filter(document__user=user)
+        if pricings.exists():
+            context_parts.append("=== PRICING ===")
+            for pricing in pricings:
+                pricing_info = f"Package: {pricing.service_or_package} - {pricing.price}"
+                if pricing.payment_terms:
+                    pricing_info += f" (Terms: {pricing.payment_terms})"
+                if pricing.discounts:
+                    pricing_info += f" (Discounts: {pricing.discounts})"
+                context_parts.append(pricing_info)
+        
+        # Get all policies for the user
+        policies = PolicyInfo.objects.filter(document__user=user)
+        if policies.exists():
+            context_parts.append("=== POLICIES ===")
+            for policy in policies:
+                context_parts.append(f"Policy: {policy.policy_type} - {policy.content}")
+        
+        # Get all training materials for the user
+        trainings = TrainingMaterial.objects.filter(document__user=user)
+        if trainings.exists():
+            context_parts.append("=== TRAINING MATERIALS ===")
+            for training in trainings:
+                context_parts.append(f"Training: {training.title} - {training.content[:200]}...")
+        
+        # Get all call scripts for the user
+        scripts = CallScript.objects.filter(document__user=user)
+        if scripts.exists():
+            context_parts.append("=== CALL SCRIPTS ===")
+            for script in scripts:
+                script_type = script.script_type or "General"
+                context_parts.append(f"Script ({script_type}): {script.content[:200]}...")
+        
+        if not context_parts:
+            return "No business information available. Please upload business documents first."
+        
+        return '\n'.join(context_parts)
+    except Exception as e:
+        return f"(Error loading business context: {e})"
+
+def get_available_slots(user):
+    slots = AvailableTimeSlot.objects.filter(user=user, is_available=True)
+    slot_strs = []
+    for slot in slots:
+        slot_strs.append(f"{slot.get_day_of_week_display()} {slot.start_time.strftime('%H:%M')}-{slot.end_time.strftime('%H:%M')}")
+    return ", ".join(slot_strs)
+
+@login_required
+@csrf_exempt
+def audio_chat_view(request):
+    if request.method == 'POST':
+        audio_file = request.FILES.get('audio')
+        if not audio_file:
+            return JsonResponse({'error': 'No audio file provided.'}, status=400)
+        # Save temp audio
+        temp_dir = os.path.join(settings.MEDIA_ROOT, 'temp')
+        os.makedirs(temp_dir, exist_ok=True)
+        temp_path = os.path.join(temp_dir, audio_file.name)
+        with open(temp_path, 'wb+') as f:
+            for chunk in audio_file.chunks():
+                f.write(chunk)
+        # Convert to wav and resample to 16kHz if needed
+        wav_path = temp_path + '.wav'
+        try:
+            audio = AudioSegment.from_file(temp_path)
+            audio = audio.set_frame_rate(16000)
+            audio = audio.set_channels(1)
+            audio.export(wav_path, format='wav')
+        except Exception as e:
+            return JsonResponse({'error': f'Audio conversion failed: {str(e)}'}, status=500)
+        # Transcribe
+        try:
+            waveform, sr = ta.load(wav_path)
+        except Exception as e:
+            return JsonResponse({'error': f'Failed to load audio: {str(e)}'}, status=500)
+        inputs = speech2text_processor(waveform.squeeze().numpy(), sampling_rate=sr, return_tensors="pt")
+        with torch.no_grad():
+            generated_ids = speech2text_model.generate(inputs["input_features"], attention_mask=inputs["attention_mask"])
+        transcription = speech2text_processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
+        # LLM prompt
+        business_context = get_business_context(request.user)
+        slots = get_available_slots(request.user)
+        starter = f"Business info: {business_context} Available slots: {slots}"
+        user_message = transcription
+        prompt = f"{starter}\nClient: {user_message}\nAssistant:"
+        from ollama import chat
+        response = chat(model='llama3.2:1B', messages=[{'role': 'user', 'content': prompt}])
+        bot_reply = response.message.content if hasattr(response, 'message') else str(response)
+        # TTS
+        output_path = os.path.join(settings.MEDIA_ROOT, 'tts_generated', f'output_{request.user.id}.wav')
+        # Load TTS model only when needed
+        tts_model = ChatterboxTTS.from_pretrained(device="cpu")
+        wav = tts_model.generate(bot_reply)
+        ta.save(output_path, wav, tts_model.sr)
+        audio_url = f"/tts/audio/output_{request.user.id}.wav"
+        return JsonResponse({'reply': bot_reply, 'audio_url': audio_url, 'transcription': transcription})
+    else:
+        return render(request, 'llm/audio_chat.html')

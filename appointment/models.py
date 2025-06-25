@@ -13,6 +13,7 @@ class CalendarEvent(models.Model):
     end_time = models.DateTimeField()
     location = models.CharField(max_length=200, blank=True, null=True)
     google_event_id = models.CharField(max_length=100, blank=True, null=True)
+    microsoft_event_id = models.CharField(max_length=256, blank=True, null=True)
     is_all_day = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

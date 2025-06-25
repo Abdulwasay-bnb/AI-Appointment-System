@@ -211,6 +211,10 @@
             <div class="stat-number">{{ google_connected|yesno:"Connected,Not Connected" }}</div>
             <div class="stat-label">Google Calendar</div>
         </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ ms_connected|yesno:"Connected,Not Connected" }}</div>
+            <div class="stat-label">Microsoft Calendar</div>
+        </div>
     </div>
 
     <!-- Quick Add Event Panel -->
@@ -255,6 +259,15 @@
                 {% else %}
                     <a href="{% url 'appointment:google_calendar_auth' %}" class="btn-calendar">
                         <i class="fab fa-google"></i> Connect Google
+                    </a>
+                {% endif %}
+                {% if ms_connected %}
+                    <a href="{% url 'appointment:microsoft_calendar_sync' %}" class="btn-calendar">
+                        <i class="fas fa-sync-alt"></i> Sync Outlook
+                    </a>
+                {% else %}
+                    <a href="{% url 'appointment:microsoft_calendar_auth' %}" class="btn-calendar">
+                        <i class="fab fa-microsoft"></i> Connect Outlook
                     </a>
                 {% endif %}
                 <a href="{% url 'appointment:event_create' %}" class="btn-calendar">

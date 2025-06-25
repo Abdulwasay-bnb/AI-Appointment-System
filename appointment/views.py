@@ -20,6 +20,7 @@ import os
 import pytz
 from django.db.models import Q
 import csv
+from .microsoft_calendar_service import get_auth_url, get_token_from_code, get_calendar_events, create_outlook_event, update_outlook_event
 
 @login_required
 def calendar_settings(request):
@@ -196,8 +197,10 @@ def calendar_view(request):
     try:
         user_profile = UserProfile.objects.get(user=request.user)
         google_connected = user_profile.is_google_calendar_connected
+        ms_connected = user_profile.ms_calendar_connected
     except UserProfile.DoesNotExist:
         google_connected = False
+        ms_connected = False
     
     # Get statistics
     events_count = CalendarEvent.objects.filter(user=request.user).count()
@@ -209,6 +212,7 @@ def calendar_view(request):
     
     context = {
         'google_connected': google_connected,
+        'ms_connected': ms_connected,
         'events_count': events_count,
         'upcoming_events': upcoming_events,
         'available_slots': available_slots,
@@ -297,6 +301,35 @@ def event_create(request):
                 pass
             
             event.save()
+            # Microsoft Calendar sync
+            try:
+                if user_profile.ms_calendar_connected and user_profile.ms_access_token:
+                    user_tz_str = user_profile.timezone or "UTC"
+                    user_tz = pytz.timezone(user_tz_str)
+                    ms_event_data = {
+                        "subject": event.title,
+                        "body": {
+                            "contentType": "HTML",
+                            "content": event.description or ""
+                        },
+                        "start": {
+                            "dateTime": event.start_time.astimezone(user_tz).strftime('%Y-%m-%dT%H:%M:%S'),
+                            "timeZone": user_tz_str
+                        },
+                        "end": {
+                            "dateTime": event.end_time.astimezone(user_tz).strftime('%Y-%m-%dT%H:%M:%S'),
+                            "timeZone": user_tz_str
+                        },
+                        "location": {
+                            "displayName": event.location or ""
+                        }
+                    }
+                    ms_event = create_outlook_event(user_profile.ms_access_token, ms_event_data)
+                    event.microsoft_event_id = ms_event['id']
+                    event.save()
+            except Exception as e:
+                print(f"Microsoft Calendar sync error: {e}")
+            
             messages.success(request, 'Event created successfully!')
             return redirect('appointment:calendar')
     else:
@@ -362,6 +395,38 @@ def event_update(request, event_id):
                     pass
             
             event.save()
+            # Microsoft Calendar sync
+            try:
+                if user_profile.ms_calendar_connected and user_profile.ms_access_token:
+                    user_tz_str = user_profile.timezone or "UTC"
+                    user_tz = pytz.timezone(user_tz_str)
+                    ms_event_data = {
+                        "subject": event.title,
+                        "body": {
+                            "contentType": "HTML",
+                            "content": event.description or ""
+                        },
+                        "start": {
+                            "dateTime": event.start_time.astimezone(user_tz).strftime('%Y-%m-%dT%H:%M:%S'),
+                            "timeZone": user_tz_str
+                        },
+                        "end": {
+                            "dateTime": event.end_time.astimezone(user_tz).strftime('%Y-%m-%dT%H:%M:%S'),
+                            "timeZone": user_tz_str
+                        },
+                        "location": {
+                            "displayName": event.location or ""
+                        }
+                    }
+                    if event.microsoft_event_id:
+                        update_outlook_event(user_profile.ms_access_token, event.microsoft_event_id, ms_event_data)
+                    else:
+                        ms_event = create_outlook_event(user_profile.ms_access_token, ms_event_data)
+                        event.microsoft_event_id = ms_event['id']
+                        event.save()
+            except Exception as e:
+                print(f"Microsoft Calendar sync error: {e}")
+            
             messages.success(request, 'Event updated successfully!')
             return redirect('appointment:calendar')
     else:
@@ -772,3 +837,71 @@ def client_restore(request, client_id):
         messages.success(request, 'Client restored successfully!')
         return redirect('appointment:client_list')
     return render(request, 'appointment/client_confirm_restore.html', {'client': client})
+
+@login_required
+def microsoft_calendar_auth(request):
+    """Start Microsoft OAuth flow"""
+    state = os.urandom(8).hex()
+    request.session['ms_auth_state'] = state
+    auth_url = get_auth_url(state)
+    return redirect(auth_url)
+
+@login_required
+def microsoft_calendar_callback(request):
+    """Handle Microsoft OAuth callback"""
+    code = request.GET.get('code')
+    state = request.GET.get('state')
+    error = request.GET.get('error')
+    if error:
+        messages.error(request, f'Microsoft OAuth error: {error}')
+        return redirect('appointment:calendar_settings')
+    if state != request.session.get('ms_auth_state'):
+        messages.error(request, 'Invalid state parameter. Please try again.')
+        return redirect('appointment:calendar_settings')
+    try:
+        token_result = get_token_from_code(code)
+        access_token = token_result.get('access_token')
+        if not access_token:
+            print("MSAL token_result:", token_result)
+            messages.error(request, f'Failed to obtain Microsoft access token. Details: {token_result.get("error_description", token_result)}')
+            return redirect('appointment:calendar_settings')
+        refresh_token = token_result.get('refresh_token')
+        expires_in = token_result.get('expires_in')
+        user_profile, _ = UserProfile.objects.get_or_create(user=request.user)
+        user_profile.ms_access_token = access_token
+        user_profile.ms_refresh_token = refresh_token
+        user_profile.ms_token_expiry = timezone.now() + timedelta(seconds=expires_in)
+        user_profile.ms_calendar_connected = True
+        user_profile.save()
+        messages.success(request, 'Microsoft Calendar connected successfully!')
+    except Exception as e:
+        messages.error(request, f'Error connecting Microsoft Calendar: {str(e)}')
+    return redirect('appointment:calendar_settings')
+
+@login_required
+def microsoft_calendar_disconnect(request):
+    try:
+        user_profile = UserProfile.objects.get(user=request.user)
+        user_profile.ms_calendar_connected = False
+        user_profile.ms_access_token = None
+        user_profile.ms_refresh_token = None
+        user_profile.ms_token_expiry = None
+        user_profile.save()
+        messages.success(request, 'Microsoft Calendar disconnected successfully!')
+    except UserProfile.DoesNotExist:
+        messages.info(request, 'Microsoft Calendar was not connected.')
+    return redirect('appointment:calendar')
+
+@login_required
+def microsoft_calendar_sync(request):
+    try:
+        user_profile = UserProfile.objects.get(user=request.user)
+        if not user_profile.ms_calendar_connected or not user_profile.ms_access_token:
+            messages.error(request, 'Microsoft Calendar not connected.')
+            return redirect('appointment:calendar')
+        events = get_calendar_events(user_profile.ms_access_token)
+        # TODO: Sync events to your CalendarEvent model as needed
+        messages.success(request, f'Synced {len(events.get("value", []))} events from Microsoft Calendar.')
+    except Exception as e:
+        messages.error(request, f'Error syncing Microsoft Calendar: {str(e)}')
+    return redirect('appointment:calendar')

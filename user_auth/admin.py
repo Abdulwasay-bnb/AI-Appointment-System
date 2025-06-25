@@ -59,6 +59,12 @@ class UserProfileAdmin(ModelAdmin):
         ('User Information', {
             'fields': ('user', 'is_client_portal_user', 'profile_image')
         }),
+        ('Microsoft Calendar Integration', {
+            'fields': (
+                'ms_calendar_connected', 'ms_access_token', 'ms_refresh_token', 'ms_token_expiry'
+            ),
+            'classes': ('collapse',)
+        }),
         ('Google Calendar Integration', {
             'fields': (
                 'google_calendar_id', 'google_calendar_connected', 'google_calendar_sync_enabled',

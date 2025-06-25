@@ -15,6 +15,12 @@ urlpatterns = [
     path('google/sync/', views.google_calendar_sync, name='google_calendar_sync'),
     path('google/test/', views.test_google_credentials, name='test_google_credentials'),
     
+    # Microsoft Calendar integration
+    path('microsoft/auth/', views.microsoft_calendar_auth, name='microsoft_calendar_auth'),
+    path('microsoft/callback/', views.microsoft_calendar_callback, name='microsoft_calendar_callback'),
+    path('microsoft/disconnect/', views.microsoft_calendar_disconnect, name='microsoft_calendar_disconnect'),
+    path('microsoft/sync/', views.microsoft_calendar_sync, name='microsoft_calendar_sync'),
+    
     # Event management
     path('events/', views.event_list, name='event_list'),
     path('event/create/', views.event_create, name='event_create'),

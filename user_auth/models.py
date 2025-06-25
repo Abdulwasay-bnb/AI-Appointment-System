@@ -19,6 +19,12 @@ class UserProfile(models.Model):
     google_calendar_connected = models.BooleanField(default=False, help_text="Whether Google Calendar is connected")
     google_calendar_sync_enabled = models.BooleanField(default=True, help_text="Whether to sync events with Google Calendar")
     
+    # Microsoft Calendar Integration Fields
+    ms_access_token = models.TextField(blank=True, null=True, help_text="Microsoft OAuth access token")
+    ms_refresh_token = models.TextField(blank=True, null=True, help_text="Microsoft OAuth refresh token")
+    ms_token_expiry = models.DateTimeField(blank=True, null=True, help_text="Microsoft token expiration time")
+    ms_calendar_connected = models.BooleanField(default=False, help_text="Whether Microsoft Calendar is connected")
+    
     # Calendar Settings
     default_event_duration = models.IntegerField(default=60, help_text="Default event duration in minutes")
     working_hours_start = models.TimeField(default='09:00', help_text="Default working hours start time")
